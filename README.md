@@ -4,7 +4,7 @@
 
 ## Features
 
-- Voice-activated trigger using the keyword "Vox"
+- Voice-activated trigger using the keyword "Aria"
 - Manual recording controls using keyboard keys
 - Integration with Google's Gemini language model
 - Built-in personality: Vox responds as a polite, witty personal assistant
