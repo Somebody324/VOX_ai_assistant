@@ -1,6 +1,6 @@
-# VOX_ai_assistant
+# ARIA_ai_assistant
 
-**Vox** is a voice-activated personal AI assistant developed in Python. It uses Vosk for offline speech recognition and Google's Gemini API for generating intelligent responses. Vox listens for the wake word **"Vox"**, responds with **"Yes, sire!"**, then records your next spoken input and sends it to Gemini for a response.
+**ARIA** is a voice-activated personal AI assistant developed in Python. It uses Vosk for offline speech recognition and Google's Gemini API for generating intelligent responses. Vox listens for the wake word **"Vox"**, responds with **"Yes, sire!"**, then records your next spoken input and sends it to Gemini for a response.
 
 ## Features
 
