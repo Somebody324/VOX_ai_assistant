@@ -1,3 +1,6 @@
+#ODE Proj
+#ARIA - Artificial Responsive Intelligent Assistant
+
 import os
 import queue
 import sounddevice as sd
@@ -5,6 +8,7 @@ import json
 import threading
 import keyboard
 import requests
+import pyttsx3
 from vosk import Model, KaldiRecognizer
 
 #CONFIGURATION
@@ -19,6 +23,11 @@ GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.
 samplerate = 16000
 device = None
 
+engine = pyttsx3.init()
+engine.setProperty('rate', 170)
+voices = engine.getProperty('voices')
+engine.setProperty('voice', voices[1].id)
+
 #MODEL
 if LANGUAGE not in MODEL_PATHS:
     raise ValueError("Unsupported language")
@@ -31,7 +40,14 @@ q = queue.Queue()
 recording = False
 recognizer = KaldiRecognizer(model, samplerate)
 result_text = []
-vox_activated = False
+Aria_activated = False
+
+#SPEAK FUNCTION
+def speak(text):
+    print(f"Aria: {text}")
+    engine.say(text)
+    engine.runAndWait()
+    engine.stop()
 
 def audio_callback(indata, frames, time, status):
     if status:
@@ -43,8 +59,10 @@ def send_to_gemini(user_input):
     headers = {"Content-Type": "application/json"}
 
     system_message = (
-        "You are Vox, a smart, witty, and polite personal assistant AI. "
+        "You are Aria, a smart, witty, and polite personal assistant AI. "
         "You are helpful, concise, and always respond as if you're speaking to your user personally."
+        "You only answer briefly to all inquiries."
+        # "You speak in bantoanon, a dialect in the romblon, phippines."
     )
 
     data = {
@@ -68,12 +86,13 @@ def send_to_gemini(user_input):
     except Exception as e:
         return f"Exception while calling Gemini: {e}"
 
+
 #AUDIO RECORDING
 def recorder():
-    global recording, result_text, vox_activated
+    global recording, result_text, Aria_activated
     with sd.RawInputStream(samplerate=samplerate, blocksize=8000, dtype='int16',
                            channels=1, callback=audio_callback, device=device):
-        print("Vox is ready. Say 'Vox' to begin. Press 's' to manually record. Press 'q' to stop.")
+        print("Aria is ready. Say 'Aria' to begin. Press 's' to manually record. Press 'q' to stop.")
         while True:
             if recording:
                 try:
@@ -81,7 +100,7 @@ def recorder():
                     if recognizer.AcceptWaveform(data):
                         result = json.loads(recognizer.Result())
                         if result.get("text"):
-                            print("Input: ", result["text"])
+                            print("User: ", result["text"])
                             result_text.append(result["text"])
                 except Exception as e:
                     print(f"Recording error: {e}")
@@ -98,18 +117,48 @@ def recorder():
                     if recognizer.AcceptWaveform(data):
                         result = json.loads(recognizer.Result())
                         spoken = result.get("text", "").lower().strip()
-                        if spoken == "vox":
-                            print("Vox: Yes, sire!")
-                            vox_activated = True
-                            print("Vox:I'm listening just press 'q' when you're done.")
+                        if spoken == "hi":
+                            #print("Aria: Yes, sire!")
+                            print("Hi, sire! I'm listening, just press 'q' when you're done.")
+                            Aria_activated = True
+                            #print("Aria:I'm listening just press 'q' when you're done.")
+                            #speak("I'm listening just press 'q' when you're done.")
                             result_text = []
                             recording = True
                 except Exception as e:
                     print(f"Passive listen error: {e}")
+            
+'''       
+def recorder():
+    global recording, result_text, Aria_activated
+    with sd.RawInputStream(samplerate=samplerate, blocksize=8000, dtype='int16',
+                           channels=1, callback=audio_callback, device=device):
+        print("Aria is ready. Say 'hi' to begin. Press 's' to manually record. Press 'q' to stop.")
+        while True:
+            try:
+                data = q.get()
+                if recognizer.AcceptWaveform(data):
+                    result = json.loads(recognizer.Result())
+                    spoken = result.get("text", "").lower().strip()
+
+                    if recording:
+                        if spoken:
+                            print("Input:", spoken)
+                            result_text.append(spoken)
+                    else:
+                        if spoken == "hi":
+                            speak("Yes, sire! I'm listening just press 'q' when you're done.")
+                            Aria_activated = True
+                            result_text = []
+                            recording = True
+
+            except Exception as e:
+                print(f"Error: {e}")
+'''
 
 #KEYBOARD COMMAND
 def listen_for_keys():
-    global recording, result_text, vox_activated
+    global recording, result_text, Aria_activated
     while True:
         keyboard.wait('q')
         if recording:
@@ -125,11 +174,11 @@ def listen_for_keys():
             print(full_text)
 
             '''
-            if vox_activated:
-                vox_activated = False
+            if Aria_activated:
+                Aria_activated = False
                 print("\nSending prompt to Gemini...")
                 response = send_to_gemini(full_text)
-                print("\nVox says:")
+                print("\nAria says:")
                 print(response)
             else:
                 print("\nIgnored — no wake word used.")
@@ -137,16 +186,35 @@ def listen_for_keys():
                 
             print("\nSending prompt to Gemini...")
             response = send_to_gemini(full_text)
-            print("\nVox:")
-            print(response)
+            #print("\nAria:")
+            #print(response)
+            speak(response)
 
-            print("\nPress 's' or say 'Vox' again to continue.\n")
+            print("\nPress 's' or say 'Aria' again to continue.\n")
 
         keyboard.wait('s')
         if not recording:
             print("\nManual recording started. Press 'q' to stop.")
             result_text = []
             recording = True
+        
+        '''
+        #try:
+            data = q.get()
+            if recognizer.AcceptWaveform(data):
+                result = json.loads(recognizer.Result())
+                spoken = result.get("text", "").lower().strip()
+                if spoken == "hi":
+                    #print("Aria: Yes, sire!")
+                    print("Hi, sire! I'm listening, just press 'q' when you're done.")
+                    Aria_activated = True
+                    #print("Aria:I'm listening just press 'q' when you're done.")
+                    #speak("I'm listening just press 'q' when you're done.")
+                    result_text = []
+                    recording = True
+        #except Exception as e:
+            #print(f"Passive listen error: {e}")
+        '''
 
 if __name__ == "__main__":
     try:
