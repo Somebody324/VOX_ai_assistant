@@ -8,7 +8,7 @@
 - Manual recording controls using keyboard keys
 - Integration with Google's Gemini language model
 - Built-in personality: Vox responds as a polite, witty personal assistant
-- English language support (with optional Tagalog support)
+- English language support (tagalog support will be added in the future)
 
 ## Requirements
 
