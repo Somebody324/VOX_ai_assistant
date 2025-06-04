@@ -117,7 +117,7 @@ def recorder():
                     if recognizer.AcceptWaveform(data):
                         result = json.loads(recognizer.Result())
                         spoken = result.get("text", "").lower().strip()
-                        if spoken == "hi":
+                        if spoken == "aria":
                             #print("Aria: Yes, sire!")
                             print("Hi, sire! I'm listening, just press 'q' when you're done.")
                             Aria_activated = True
