@@ -16,3 +16,5 @@ Install all required Python libraries with the following command:
 
 ```bash
 pip install vosk sounddevice keyboard requests
+
+pip install PyQt5
