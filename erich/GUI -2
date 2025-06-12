@@ -85,7 +85,7 @@ class HeartRateReviewScreen(QWidget):
         entry_widget.setStyleSheet("background: transparent;")
 
         # SVG background
-        svg_widget = QtSvg.QSvgWidget(r"C:\Users\Acer\Desktop\svg\bp review 1.svg", entry_widget)
+        svg_widget = QtSvg.QSvgWidget(r"assets\solid_background.svg", entry_widget)
         svg_widget.setGeometry(0, 0, 284, 50)
 
         # Date/time
@@ -140,7 +140,7 @@ class HomeScreen(QWidget):
     def initUI(self):
         self.setStyleSheet("background-color: #0C151C;")
 
-        self.wifi_icon = QtSvg.QSvgWidget(r"C:\Users\Acer\Desktop\svg\wifi icon (home screen).svg", self)
+        self.wifi_icon = QtSvg.QSvgWidget(r"assets\wifi_icon.svg", self)
         self.wifi_icon.setGeometry(110, 19, 16, 16)
         self.wifi_icon.mousePressEvent = self.wifiClicked
 
@@ -152,11 +152,11 @@ class HomeScreen(QWidget):
         self.battery_text.setAlignment(Qt.AlignCenter)
         self.updateBatteryLevel()
 
-        self.battery_icon = QtSvg.QSvgWidget(r"C:\Users\Acer\Desktop\svg\battery_android_6.svg", self)
+        self.battery_icon = QtSvg.QSvgWidget(r"assets\battery_icon.svg", self)
         self.battery_icon.setGeometry(163, 19, 22, 18)
         self.battery_icon.mousePressEvent = self.batteryClicked
 
-        self.mode_icon = QtSvg.QSvgWidget(r"C:\Users\Acer\Desktop\svg\dark and light mode icon (home).svg", self)
+        self.mode_icon = QtSvg.QSvgWidget(r"assets\dark_light_mode_icon.svg", self)
         self.mode_icon.setGeometry(188, 18, 18, 18)
         self.mode_icon.mousePressEvent = self.modeClicked
 
@@ -176,10 +176,10 @@ class HomeScreen(QWidget):
         self.date_label.setAlignment(Qt.AlignCenter)
         self.updateDate()
 
-        self.heart_icon = QtSvg.QSvgWidget(r"C:\Users\Acer\Desktop\svg\heart icon (home).svg", self)
+        self.heart_icon = QtSvg.QSvgWidget(r"assets\heart_icon_hs.svg", self)
         self.heart_icon.setGeometry(62, 129, 95, 100)
 
-        self.mic_icon = QtSvg.QSvgWidget(r"C:\Users\Acer\Desktop\svg\mic icon (home).svg", self)
+        self.mic_icon = QtSvg.QSvgWidget(r"assets\mic_icon_hs.svg", self)
         self.mic_icon.setGeometry(169, 129, 95, 100)
 
     def setupTimer(self):
@@ -232,7 +232,7 @@ class HeartRateScreen(QWidget):
         self.title.setStyleSheet("color: #FFF; font-family: Roboto; font-size: 40px; font-weight: 700;")
         self.title.setAlignment(Qt.AlignCenter)
 
-        self.heart_icon = QtSvg.QSvgWidget(r"C:\Users\Acer\Desktop\svg\heart rate (loading).svg", self)
+        self.heart_icon = QtSvg.QSvgWidget(r"assets\heart_rate_ls.svg", self)
         self.heart_icon.setGeometry(90, 60, 130, 130)
 
         self.measure_label = QLabel("Measuring...", self)
@@ -273,7 +273,7 @@ class HeartRateResultScreen(QWidget):
         self.initUI()
 
     def initUI(self):
-        self.heart_icon = QtSvg.QSvgWidget(r"C:\Users\Acer\Desktop\svg\heart rate (results).svg", self)
+        self.heart_icon = QtSvg.QSvgWidget(r"assets\heart_rate_rs.svg", self)
         self.heart_icon.setGeometry(32, 28, 122, 122)
 
         self.rate_label = QLabel("0", self)
