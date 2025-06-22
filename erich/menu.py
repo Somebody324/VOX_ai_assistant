@@ -1,0 +1,414 @@
+import sys
+import psutil
+import random
+from PyQt5.QtWidgets import (
+    QApplication, QWidget, QLabel, QVBoxLayout, QStackedWidget, QScrollArea, QFrame
+)
+from PyQt5.QtCore import Qt, QTimer, QTime, QDate, QDateTime
+from PyQt5.QtGui import QFont, QColor, QPainter, QBrush, QPaintEvent
+from PyQt5 import QtSvg
+
+from PyQt5.QtWidgets import QWidget, QLabel, QVBoxLayout, QScrollArea, QFrame
+from PyQt5.QtCore import Qt, QDateTime
+from PyQt5.QtGui import QPainter, QBrush, QColor, QPaintEvent
+from PyQt5 import QtSvg
+
+class HeartRateReviewScreen(QWidget):
+    def __init__(self, home_callback, bpm_history):
+        super().__init__()
+        self.setFixedSize(320, 240)
+        self.setStyleSheet("background-color: #0C151C;")
+        self.home_callback = home_callback
+        self.bpm_history = bpm_history
+        self.initUI()
+
+    def initUI(self):
+        # Home button (fixed position at bottom center)
+        self.home_label = QLabel("Home", self)
+        self.home_label.setGeometry(139, 207, 60, 20)
+        self.home_label.setStyleSheet("color: #FFFFFF; font-family: Roboto; font-size: 16px; font-weight: 500;background-color: transparent;")
+        self.home_label.setAlignment(Qt.AlignLeft)
+        self.home_label.mousePressEvent = self.goHome
+
+        # Scroll area for BPM entries
+        self.scroll_area = QScrollArea(self)
+        self.scroll_area.setGeometry(0, 0, 320, 200)  # Shortened height to avoid covering the Home button
+        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.scroll_area.setFrameShape(QFrame.NoFrame)
+        self.scroll_area.setStyleSheet("""
+            QScrollArea {
+                background: transparent;
+            }
+            QScrollBar:vertical {
+                background: transparent;
+                width: 10px;
+                margin: 4px 2px 4px 0px;
+                border-radius: 5px;
+            }
+            QScrollBar::handle:vertical {
+                background: #E3F6FA;
+                min-height: 36px;
+                border-radius: 5px;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                height: 0px;
+                background: none;
+                border: none;
+            }
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+                background: none;
+            }
+        """)
+
+        # Container widget for entries
+        self.container = QWidget()
+        self.container.setStyleSheet("background: transparent;")
+        self.scroll_area.setWidget(self.container)
+        self.scroll_area.setWidgetResizable(True)
+
+        # Layout for dynamic content
+        self.layout = QVBoxLayout(self.container)
+        self.layout.setContentsMargins(8, 8, 8, 8)
+        self.layout.setSpacing(10)
+
+        # Add entries (newest first)
+        for entry in reversed(self.bpm_history):
+            self.add_entry(entry)
+
+        # Ensure Home label stays clickable
+        self.home_label.raise_()
+
+    def add_entry(self, entry):
+        entry_widget = QWidget()
+        entry_widget.setFixedSize(290, 50)
+        entry_widget.setStyleSheet("background: transparent;")
+
+        # SVG background
+        svg_widget = QtSvg.QSvgWidget(r"C:\Users\Acer\Desktop\svg\bp review 1.svg", entry_widget)
+        svg_widget.setGeometry(0, 0, 284, 50)
+
+        # Date/time
+        dt_str = entry['dt'].toString("MM/dd-hh:mm AP")
+        dt_label = QLabel(dt_str, entry_widget)
+        dt_label.setGeometry(12, 10, 159, 24)
+        dt_label.setStyleSheet("color: #FFF; font-family: Roboto; font-size: 20px; font-weight: 500;")
+
+        # BPM
+        bpm = entry['bpm']
+        bpm_color = "#67DE8B" if bpm < 100 else "#E62B2B"
+        bpm_label = QLabel(f"{bpm} BPM", entry_widget)
+        bpm_label.setGeometry(190, 10, 85, 24)
+        bpm_label.setStyleSheet(f"color: {bpm_color}; font-family: Roboto; font-size: 20px; font-weight: 500;")
+
+        self.layout.addWidget(entry_widget)
+
+    def goHome(self, event):
+        print("Home clicked")  # Debug confirmation
+        self.home_callback()
+
+    def paintEvent(self, event: QPaintEvent):
+        """Draw the rounded rectangle behind the bottom UI area."""
+        super().paintEvent(event)
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+
+        rect_x = 93
+        rect_y = 202
+        rect_w = 133
+        rect_h = 27
+
+        color = QColor('#2A4A62')
+        brush = QBrush(color)
+
+        painter.setBrush(brush)
+        painter.setPen(Qt.NoPen)
+        painter.drawRoundedRect(rect_x, rect_y, rect_w, rect_h, 11, 11)
+
+
+
+
+# --- Home Screen ---
+class HomeScreen(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setFixedSize(320, 240)
+        self.setWindowTitle("Home Screen")
+        self.initUI()
+        self.setupTimer()
+
+    def initUI(self):
+        self.setStyleSheet("background-color: #0C151C;")
+
+        self.wifi_icon = QtSvg.QSvgWidget(r"C:\Users\Acer\Desktop\svg\wifi icon (home screen).svg", self)
+        self.wifi_icon.setGeometry(110, 19, 16, 16)
+        self.wifi_icon.mousePressEvent = self.wifiClicked
+
+        self.battery_text = QLabel(self)
+        self.battery_text.setGeometry(130, 22, 33, 10)
+        self.battery_text.setStyleSheet("""
+            color: #FFF; font-family: Roboto; font-size: 12px; font-weight: 400; background-color: transparent;
+        """)
+        self.battery_text.setAlignment(Qt.AlignCenter)
+        self.updateBatteryLevel()
+
+        self.battery_icon = QtSvg.QSvgWidget(r"C:\Users\Acer\Desktop\svg\battery_android_6.svg", self)
+        self.battery_icon.setGeometry(163, 19, 22, 18)
+        self.battery_icon.mousePressEvent = self.batteryClicked
+
+        self.mode_icon = QtSvg.QSvgWidget(r"C:\Users\Acer\Desktop\svg\dark and light mode icon (home).svg", self)
+        self.mode_icon.setGeometry(188, 18, 18, 18)
+        self.mode_icon.mousePressEvent = self.modeClicked
+
+        self.time_label = QLabel(self)
+        self.time_label.setGeometry(0, 40, 320, 60)
+        self.time_label.setStyleSheet("""
+            color: #1DCFE3; font-family: Roboto; font-size: 50px; font-weight: 600; letter-spacing: -1px;
+        """)
+        self.time_label.setAlignment(Qt.AlignCenter)
+        self.updateTime()
+
+        self.date_label = QLabel(self)
+        self.date_label.setGeometry(0, 95, 320, 20)
+        self.date_label.setStyleSheet("""
+            color: #FFF; font-family: Roboto; font-size: 16px; font-weight: 400;
+        """)
+        self.date_label.setAlignment(Qt.AlignCenter)
+        self.updateDate()
+
+        self.heart_icon = QtSvg.QSvgWidget(r"C:\Users\Acer\Desktop\svg\heart icon (home).svg", self)
+        self.heart_icon.setGeometry(62, 129, 95, 100)
+
+        self.mic_icon = QtSvg.QSvgWidget(r"C:\Users\Acer\Desktop\svg\mic icon (home).svg", self)
+        self.mic_icon.setGeometry(169, 129, 95, 100)
+
+    def setupTimer(self):
+        self.time_timer = QTimer()
+        self.time_timer.timeout.connect(self.updateTime)
+        self.time_timer.start(1000)
+
+        self.battery_timer = QTimer()
+        self.battery_timer.timeout.connect(self.updateBatteryLevel)
+        self.battery_timer.start(30000)
+
+    def updateTime(self):
+        self.time_label.setText(QTime.currentTime().toString("h:mm AP"))
+
+    def updateDate(self):
+        self.date_label.setText(QDate.currentDate().toString("dddd, MMMM d"))
+
+    def updateBatteryLevel(self):
+        battery = psutil.sensors_battery()
+        percent = f"{int(battery.percent)}%" if battery else "56%"
+        self.battery_text.setText(percent)
+
+    def wifiClicked(self, event): print("WiFi icon clicked")
+    def batteryClicked(self, event): print("Battery icon clicked")
+    def heartClicked(self, event): print("Heart icon clicked")
+    def micClicked(self, event): print("Mic icon clicked")
+    def modeClicked(self, event): print("Mode icon clicked")
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        painter.setBrush(QBrush(QColor('#2A4A62')))
+        painter.setPen(Qt.NoPen)
+        painter.drawRoundedRect(93, 14, 133, 27, 11, 11)
+
+# --- Heart Rate Loading/Measuring Screen ---
+class HeartRateScreen(QWidget):
+    def __init__(self, switch_callback):
+        super().__init__()
+        self.setFixedSize(320, 240)
+        self.setStyleSheet("background-color: #0C151C;")
+        self.switch_callback = switch_callback
+        self.dot_state = 0
+        self.initUI()
+        self.startAnimation()
+
+    def initUI(self):
+        self.title = QLabel("Heart Rate", self)
+        self.title.setGeometry(0, 20, 320, 40)
+        self.title.setStyleSheet("color: #FFF; font-family: Roboto; font-size: 40px; font-weight: 700;")
+        self.title.setAlignment(Qt.AlignCenter)
+
+        self.heart_icon = QtSvg.QSvgWidget(r"C:\Users\Acer\Desktop\svg\heart rate (loading).svg", self)
+        self.heart_icon.setGeometry(90, 60, 130, 130)
+
+        self.measure_label = QLabel("Measuring...", self)
+        self.measure_label.setGeometry(80, 185, 150, 30)
+        self.measure_label.setStyleSheet("""
+            color: #FFF; font-family: Roboto; font-size: 18px; font-weight: 500;
+            background-color: #2A4A62; border-radius: 11px;
+        """)
+        self.measure_label.setAlignment(Qt.AlignCenter)
+
+    def startAnimation(self):
+        self.dot_state = 0
+        self.measure_label.setText("Measuring...")
+
+        self.dot_timer = QTimer()
+        self.dot_timer.timeout.connect(self.animateDots)
+        self.dot_timer.start(500)
+
+        self.switch_timer = QTimer()
+        self.switch_timer.setSingleShot(True)
+        self.switch_timer.timeout.connect(self.switch_callback)
+        self.switch_timer.start(5000)
+
+    def animateDots(self):
+        dots = [".", "..", "..."]
+        self.measure_label.setText(f"Measuring{dots[self.dot_state]}")
+        self.dot_state = (self.dot_state + 1) % len(dots)
+
+# --- Heart Rate Result Screen ---
+class HeartRateResultScreen(QWidget):
+    def __init__(self, home_callback, history_callback, bpm_history):
+        super().__init__()
+        self.setFixedSize(320, 240)
+        self.setStyleSheet("background-color: #0C151C;")
+        self.home_callback = home_callback
+        self.history_callback = history_callback
+        self.bpm_history = bpm_history
+        self.initUI()
+
+    def initUI(self):
+        self.heart_icon = QtSvg.QSvgWidget(r"C:\Users\Acer\Desktop\svg\heart rate (results).svg", self)
+        self.heart_icon.setGeometry(32, 28, 122, 122)
+
+        self.rate_label = QLabel("0", self)
+        self.rate_label.setGeometry(161, 42, 100, 58)
+        self.rate_label.setStyleSheet("""
+            color: #FFF; font-family: Roboto; font-size: 58px; font-weight: 500;
+        """)
+
+        self.bpm_label = QLabel("BPM", self)
+        self.bpm_label.setGeometry(234, 80, 60, 20)
+        self.bpm_label.setStyleSheet("""
+            color: #FFF; font-family: Roboto; font-size: 17px; font-weight: 500;
+        """)
+
+        self.status_label = QLabel("Status", self)
+        self.status_label.setGeometry(164, 109, 120, 20)
+        self.status_label.setAlignment(Qt.AlignLeft)
+
+        # History button
+        self.history_label = QLabel("History", self)
+        self.history_label.setGeometry(0, 166, 320, 20)
+        self.history_label.setStyleSheet("""
+            color: #FFF; font-family: Roboto; font-size: 18px; font-weight: 500; background-color: transparent;
+        """)
+        self.history_label.setAlignment(Qt.AlignCenter)
+        self.history_label.mousePressEvent = self.showHistory
+
+        # Home button
+        self.home_label = QLabel("Home", self)
+        self.home_label.setGeometry(130, 200, 60, 20)
+        self.home_label.setStyleSheet("""
+            color: #FFF; font-family: Roboto; font-size: 18px; font-weight: 500; background-color: transparent;
+        """)
+        self.home_label.setAlignment(Qt.AlignCenter)
+        self.home_label.mousePressEvent = self.backToHome
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self.generateHeartRate()
+
+    def generateHeartRate(self):
+        self.heart_rate = random.randint(60, 140)
+        self.rate_label.setText(str(self.heart_rate))
+
+        # Save to history (with timestamp)
+        now = QDateTime.currentDateTime()
+        self.bpm_history.insert(0, {'dt': now, 'bpm': self.heart_rate})
+
+        if self.heart_rate <= 99:
+            status = "Normal"
+            color = "#67DE8B"
+            bpm_x = 234
+        else:
+            status = "Elevated"
+            color = "#E62B2B"
+            bpm_x = 260
+        self.bpm_label.move(bpm_x, 80)
+        self.status_label.setText(status)
+        self.status_label.setStyleSheet(f"""
+            color: {color}; font-family: Roboto; font-size: 19px; font-weight: 500;
+        """)
+
+    def backToHome(self, event):
+        self.home_callback()
+
+    def showHistory(self, event):
+        self.history_callback()
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        painter.setBrush(QBrush(QColor('#2A4A62')))
+        painter.setPen(Qt.NoPen)
+        painter.drawRoundedRect(94, 161, 133, 27, 11, 11)
+        painter.drawRoundedRect(94, 195, 133, 27, 11, 11)
+
+# --- Main Window with Navigation ---
+class MainWindow(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setFixedSize(320, 240)
+        self.setWindowTitle("Main Application")
+        self.setStyleSheet("background-color: #0C151C;")
+        self.stack = QStackedWidget(self)
+        self.heart_measurement_started = False
+
+        self.bpm_history = []
+
+        self.home_screen = HomeScreen()
+        self.heart_screen = HeartRateScreen(self.showResultScreen)
+        self.result_screen = HeartRateResultScreen(self.backToHome, self.showHistoryScreen, self.bpm_history)
+        self.review_screen = HeartRateReviewScreen(self.backToHome, self.bpm_history)  # Pass backToHome
+
+        self.stack.addWidget(self.home_screen)
+        self.stack.addWidget(self.heart_screen)
+        self.stack.addWidget(self.result_screen)
+        self.stack.addWidget(self.review_screen)
+
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self.stack)
+        self.setLayout(layout)
+
+        self.stack.setCurrentIndex(0)
+        self.home_screen.heart_icon.mousePressEvent = self.switchToHeartScreen
+
+    def switchToHeartScreen(self, event):
+        self.heart_measurement_started = True
+        self.heart_screen.startAnimation()
+        self.stack.setCurrentIndex(1)
+
+    def showResultScreen(self):
+        if self.heart_measurement_started:
+            self.stack.setCurrentIndex(2)
+            self.heart_measurement_started = False  # Reset after use
+        else:
+            print("Heart measurement not initiated. Skipping result screen.")
+
+    def backToHome(self):
+        self.stack.setCurrentIndex(0)
+
+    def showHistoryScreen(self):
+        # Re-create the review screen to update history
+        self.stack.removeWidget(self.review_screen)
+        self.review_screen = HeartRateReviewScreen(self.backToHome, self.bpm_history)  # Pass backToHome
+        self.stack.addWidget(self.review_screen)
+        self.stack.setCurrentWidget(self.review_screen)
+
+    def backToResultScreen(self):
+        self.stack.setCurrentIndex(2)
+
+# --- Application Entry Point ---
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    app.setFont(QFont("Roboto"))
+    window = MainWindow()
+    window.show()
+    sys.exit(app.exec_())
