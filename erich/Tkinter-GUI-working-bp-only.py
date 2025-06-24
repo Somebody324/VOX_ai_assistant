@@ -229,22 +229,21 @@ class MainApplication(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Heart Monitor")
-        # self.geometry("320x240")
-        # self.resizable(False, False)
-        self.attributes('-fullscreen', True)  # Remove window borders & go fullscreen
-        self.overrideredirect(True)           # Hides title bar
-        self.geometry("320x240+0+0")          # Explicitly set to match screen resolution
-        self.config(cursor="none")            # Optional: hides cursor for touchscreens
-
+        self.attributes('-fullscreen', True)      # Remove window borders & go fullscreen
+        self.overrideredirect(True)               # Hides title bar
+        self.geometry("480x360+0+0")              # Set to full screen resolution
+        self.config(cursor="none")                # Optional: hide cursor for touchscreens
         self.bpm_history = []
         self.is_dark = True
         self.themes = {
-            'dark': {'mode':'dark','bg':"#0C151C", 'fg':"white", 'accent':"#2A5062", 'ok':"#67DE8B", 'warn':"#E62B2B"},
-            'light':{'mode':'light','bg':"white", 'fg':"black", 'accent':"#0C151C", 'ok':"#008000", 'warn':"#FF0000"}
+            'dark': {'mode': 'dark', 'bg': "#0C151C", 'fg': "white", 'accent': "#2A5062", 'ok': "#67DE8B", 'warn': "#E62B2B"},
+            'light': {'mode': 'light', 'bg': "white", 'fg': "black", 'accent': "#0C151C", 'ok': "#008000", 'warn': "#FF0000"}
         }
-        self.container = tk.Frame(self); self.container.pack(fill="both", expand=True)
+        self.container = tk.Frame(self)
+        self.container.pack(fill="both", expand=True)
         self.frames = {}
         self.build_frames(self.current_theme)
+
 
     @property
     def current_theme(self):
