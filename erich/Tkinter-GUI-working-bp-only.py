@@ -1,4 +1,5 @@
 import sys
+import os
 import random
 import tkinter as tk
 from tkinter import ttk
@@ -78,12 +79,17 @@ class HomeScreen(tk.Frame):
         self.update_time()
 
     def build_ui(self):
+        import os
+        from PIL import Image, ImageTk
+
         t = self.theme
-        base = r"..\assets\svg"
+        base = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'assets'))
+
 
         def load(name, filename, size):
             try:
-                img = Image.open(f"{base}\\{filename}").resize(size, Image.Resampling.LANCZOS)
+                path = os.path.join(base, filename)
+                img = Image.open(path).resize(size, Image.Resampling.LANCZOS)
                 self.icons[name] = ImageTk.PhotoImage(img)
             except Exception as e:
                 print(f"Error loading image {filename}: {e}")
@@ -95,6 +101,7 @@ class HomeScreen(tk.Frame):
         load("heart", "heart_icon.png" if t['mode'] == 'dark' else "heart_icon_home_white.png", (100, 100))
         load("mic", "mic_icon.png" if t['mode'] == 'dark' else "mic_icon_home_white.png", (100, 100))
         load("mode", "dark_mode.png" if t['mode'] == 'dark' else "light_mode.png", (18, 18))
+
 
         tk.Label(self, image=self.icons["wifi"], bg=t['bg']).place(x=10, y=10)
         tk.Label(self, image=self.icons["battery"], bg=t['bg']).place(x=260, y=10)
@@ -136,11 +143,11 @@ class HeartRateScreen(tk.Frame):
         t = self.theme
         fg_label = "white" if t['mode'] == "dark" else "#0C151C"
         box_bg = "#2A4A62"
+        base = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'assets'))
 
         tk.Label(self, text="Heart Rate", fg=fg_label, bg=t['bg'],
                  font=("Roboto", 32, "bold")).pack(pady=10)
-        img = Image.open(r"..\assets\heart rate (loading) png.png")\
-                .resize((90, 90), Image.Resampling.LANCZOS)
+        img = Image.open(os.path.join(base,"heart_rate_loading.png")).resize((90, 90), Image.Resampling.LANCZOS)
         self.icon = ImageTk.PhotoImage(img)
         tk.Label(self, image=self.icon, bg=t['bg']).place(x=110, y=70)
         self.txt = tk.Label(self, text="Measuring...", fg="white", bg=box_bg,
@@ -182,9 +189,10 @@ class HeartRateResultScreen(tk.Frame):
         self.build_ui()
 
     def build_ui(self):
+        base = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'assets'))
         t = self.theme
         fg_val = t['fg'] if t['mode'] == "dark" else "#0C151C"
-        img_path = r"..\assets\heart_rate_result_white.png" if t['mode'] == 'light' else r"..\assets\heart rate (results) png.png"
+        img_path = os.path.join(base,"heart_rate_result_white.png") if t['mode'] == 'light' else os.path.join(base,"heart_rate_results.png")
         img = Image.open(img_path).resize((120, 120), Image.Resampling.LANCZOS)
         self.icon = ImageTk.PhotoImage(img)
         tk.Label(self, image=self.icon, bg=t['bg']).place(x=20, y=30)
