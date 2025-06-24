@@ -142,24 +142,26 @@ class HeartRateReviewScreen(tk.Frame):
 
 class HomeScreen(tk.Frame):
     def __init__(self, parent, heart_callback, theme, toggle_theme):
-        super().__init__(parent, width=480, height=360, bg=theme['bg'])
+        super().__init__(parent, width=320, height=240, bg=theme['bg'])
         self.theme = theme
         self.heart_callback = heart_callback
         self.toggle_theme = toggle_theme
         self.icons = {}
         self.build_ui()
         self.update_time()
-        self.batt_label = tk.Label(self, text="--%", fg=theme['fg'], bg=theme['bg'], font=("Roboto", 14))
-        self.batt_label.place(x=400, y=10)
-        self.update_battery()
 
     def build_ui(self):
+        import os
+        from PIL import Image, ImageTk
+
         t = self.theme
-        base = r"C:\Users\Acer\Desktop\svg"
+        base = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'assets'))
+
 
         def load(name, filename, size):
             try:
-                img = Image.open(f"{base}\\{filename}").resize(size, Image.Resampling.LANCZOS)
+                path = os.path.join(base, filename)
+                img = Image.open(path).resize(size, Image.Resampling.LANCZOS)
                 self.icons[name] = ImageTk.PhotoImage(img)
             except Exception as e:
                 print(f"Error loading image {filename}: {e}")
@@ -172,24 +174,22 @@ class HomeScreen(tk.Frame):
         load("mic", "mic_icon.png" if t['mode'] == 'dark' else "mic_icon_home_white.png", (100, 100))
         load("mode", "dark_mode.png" if t['mode'] == 'dark' else "light_mode.png", (18, 18))
 
-        wifi_lbl = tk.Label(self, image=self.icons["wifi"], bg=t['bg'])
-        wifi_lbl.place(x=10, y=10)
-        wifi_lbl.bind("<Button-1>", lambda e: self.heart_callback.__self__.show_frame("WifiList"))
 
-        tk.Label(self, image=self.icons["battery"], bg=t['bg']).place(x=360, y=10)
+        tk.Label(self, image=self.icons["wifi"], bg=t['bg']).place(x=10, y=10)
+        tk.Label(self, image=self.icons["battery"], bg=t['bg']).place(x=260, y=10)
         mode_lbl = tk.Label(self, image=self.icons["mode"], bg=t['bg'])
-        mode_lbl.place(x=400, y=10)
+        mode_lbl.place(x=285, y=10)
         mode_lbl.bind("<Button-1>", lambda e: self.toggle_theme())
 
         heart_btn = tk.Button(self, image=self.icons["heart"], command=self.heart_callback,
                               bg="#0C151C" if t['mode'] == 'dark' else "white",
                               borderwidth=0, activebackground=t['bg'])
-        heart_btn.place(x=80, y=200, width=100, height=100)
+        heart_btn.place(x=50, y=130, width=100, height=100)
 
         mic_btn = tk.Button(self, image=self.icons["mic"],
                             bg="#0C151C" if t['mode'] == 'dark' else "white",
                             borderwidth=0, activebackground=t['bg'])
-        mic_btn.place(x=280, y=200, width=100, height=100)
+        mic_btn.place(x=170, y=130, width=100, height=100)
 
         self.time_label = tk.Label(self, text="", fg="#1DCFE3", bg=t['bg'], font=("Roboto", 36, "bold"))
         self.time_label.pack(pady=(30, 0))
@@ -201,13 +201,7 @@ class HomeScreen(tk.Frame):
         self.time_label.config(text=now.strftime("%I:%M %p"))
         self.date_label.config(text=now.strftime("%A, %B %d"))
         self.after(1000, self.update_time)
-
-    def update_battery(self):
-        v = get_battery_voltage()
-        pct = voltage_to_percent(v)
-        self.batt_label.config(text=f"{pct}%")
-        self.after(60000, self.update_battery)
-
+        
 class HeartRateScreen(tk.Frame):
     def __init__(self, parent, result_cb, theme):
         super().__init__(parent, width=480, height=360, bg=theme['bg'])
