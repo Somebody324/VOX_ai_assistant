@@ -229,8 +229,13 @@ class MainApplication(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Heart Monitor")
-        self.geometry("320x240")
-        self.resizable(False, False)
+        # self.geometry("320x240")
+        # self.resizable(False, False)
+        self.attributes('-fullscreen', True)  # Remove window borders & go fullscreen
+        self.overrideredirect(True)           # Hides title bar
+        self.geometry("320x240+0+0")          # Explicitly set to match screen resolution
+        self.config(cursor="none")            # Optional: hides cursor for touchscreens
+
         self.bpm_history = []
         self.is_dark = True
         self.themes = {
