@@ -79,7 +79,7 @@ class HomeScreen(tk.Frame):
 
     def build_ui(self):
         t = self.theme
-        base = r"C:\Users\Acer\Desktop\svg"
+        base = r"..\assets\svg"
 
         def load(name, filename, size):
             try:
@@ -139,7 +139,7 @@ class HeartRateScreen(tk.Frame):
 
         tk.Label(self, text="Heart Rate", fg=fg_label, bg=t['bg'],
                  font=("Roboto", 32, "bold")).pack(pady=10)
-        img = Image.open(r"C:\Users\Acer\Desktop\svg\heart rate (loading) png.png")\
+        img = Image.open(r"..\assets\heart rate (loading) png.png")\
                 .resize((90, 90), Image.Resampling.LANCZOS)
         self.icon = ImageTk.PhotoImage(img)
         tk.Label(self, image=self.icon, bg=t['bg']).place(x=110, y=70)
@@ -184,7 +184,7 @@ class HeartRateResultScreen(tk.Frame):
     def build_ui(self):
         t = self.theme
         fg_val = t['fg'] if t['mode'] == "dark" else "#0C151C"
-        img_path = r"C:\Users\Acer\Desktop\svg\heart_rate_result_white.png" if t['mode'] == 'light' else r"C:\Users\Acer\Desktop\svg\heart rate (results) png.png"
+        img_path = r"..\assets\heart_rate_result_white.png" if t['mode'] == 'light' else r"..\assets\heart rate (results) png.png"
         img = Image.open(img_path).resize((120, 120), Image.Resampling.LANCZOS)
         self.icon = ImageTk.PhotoImage(img)
         tk.Label(self, image=self.icon, bg=t['bg']).place(x=20, y=30)
