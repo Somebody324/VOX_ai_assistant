@@ -7,9 +7,14 @@ from datetime import datetime
 from PIL import Image, ImageTk
 import csv
 
+
+SCREEN_WIDTH = 480
+SCREEN_HEIGHT = 360
+
+
 class HeartRateReviewScreen(tk.Frame):
     def __init__(self, parent, home_callback, bpm_history, theme):
-        super().__init__(parent, width=320, height=240, bg=theme['bg'])
+        super().__init__(parent, width=480, height=360, bg=theme['bg'])
         self.theme = theme
         self.home_callback = home_callback
         self.bpm_history = bpm_history
@@ -70,7 +75,7 @@ class HeartRateReviewScreen(tk.Frame):
 
 class HomeScreen(tk.Frame):
     def __init__(self, parent, heart_callback, theme, toggle_theme):
-        super().__init__(parent, width=320, height=240, bg=theme['bg'])
+        super().__init__(parent, width=480, height=360, bg=theme['bg'])
         self.theme = theme
         self.heart_callback = heart_callback
         self.toggle_theme = toggle_theme
@@ -132,7 +137,7 @@ class HomeScreen(tk.Frame):
 
 class HeartRateScreen(tk.Frame):
     def __init__(self, parent, result_cb, theme):
-        super().__init__(parent, width=320, height=240, bg=theme['bg'])
+        super().__init__(parent, width=480, height=360, bg=theme['bg'])
         self.theme = theme
         self.result_cb = result_cb
         self.build_ui()
@@ -181,7 +186,7 @@ class HeartRateScreen(tk.Frame):
 
 class HeartRateResultScreen(tk.Frame):
     def __init__(self, parent, home_cb, hist_cb, bpm_history, theme):
-        super().__init__(parent, width=320, height=240, bg=theme['bg'])
+        super().__init__(parent, width=480, height=360, bg=theme['bg'])
         self.theme = theme
         self.home_cb = home_cb
         self.hist_cb = hist_cb
@@ -229,10 +234,10 @@ class MainApplication(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Heart Monitor")
-        self.attributes('-fullscreen', True)      # Remove window borders & go fullscreen
-        self.overrideredirect(True)               # Hides title bar
+        # self.attributes('-fullscreen', True)      # Remove window borders & go fullscreen
+        # self.overrideredirect(True)               # Hides title bar
         self.geometry("480x360+0+0")              # Set to full screen resolution
-        self.config(cursor="none")                # Optional: hide cursor for touchscreens
+        # self.config(cursor="none")                # Optional: hide cursor for touchscreens
         self.bpm_history = []
         self.is_dark = True
         self.themes = {

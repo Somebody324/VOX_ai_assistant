@@ -170,13 +170,13 @@ class HomeScreen(tk.Frame):
 
         load("wifi", "wifi_white.png" if t['mode'] == 'dark' else "wifi_black.png", (18, 18))
         load("battery", "battery_perma.png", (22, 18))
-        load("heart", "heart_icon.png" if t['mode'] == 'dark' else "heart_icon_home_white.png", (100, 100))
-        load("mic", "mic_icon.png" if t['mode'] == 'dark' else "mic_icon_home_white.png", (100, 100))
-        load("mode", "dark_mode.png" if t['mode'] == 'dark' else "light_mode.png", (18, 18))
+        load("heart", "heart_icon.png" if t['mode'] == 'dark' else "heart_icon_home_white.png", (180, 180))
+        load("mic", "mic_icon.png" if t['mode'] == 'dark' else "mic_icon_home_white.png", (180, 180))
+        # load("mode", "dark_mode.png" if t['mode'] == 'dark' else "light_mode.png", (18, 18))
 
 
-        tk.Label(self, image=self.icons["wifi"], bg=t['bg']).place(x=10, y=10)
-        tk.Label(self, image=self.icons["battery"], bg=t['bg']).place(x=260, y=10)
+        tk.Label(self, image=self.icons["wifi"], bg=t['bg']).place(x=220, y=10)
+        tk.Label(self, image=self.icons["battery"], bg=t['bg']).place(x=250, y=10)
         mode_lbl = tk.Label(self, image=self.icons["mode"], bg=t['bg'])
         mode_lbl.place(x=285, y=10)
         mode_lbl.bind("<Button-1>", lambda e: self.toggle_theme())
@@ -184,12 +184,12 @@ class HomeScreen(tk.Frame):
         heart_btn = tk.Button(self, image=self.icons["heart"], command=self.heart_callback,
                               bg="#0C151C" if t['mode'] == 'dark' else "white",
                               borderwidth=0, activebackground=t['bg'])
-        heart_btn.place(x=50, y=130, width=100, height=100)
+        heart_btn.place(x=50, y=130, width=180, height=180)
 
         mic_btn = tk.Button(self, image=self.icons["mic"],
                             bg="#0C151C" if t['mode'] == 'dark' else "white",
                             borderwidth=0, activebackground=t['bg'])
-        mic_btn.place(x=170, y=130, width=100, height=100)
+        mic_btn.place(x=250, y=130, width=180, height=180)
 
         self.time_label = tk.Label(self, text="", fg="#1DCFE3", bg=t['bg'], font=("Roboto", 36, "bold"))
         self.time_label.pack(pady=(30, 0))
@@ -212,13 +212,14 @@ class HeartRateScreen(tk.Frame):
         self.animation_id = None   
 
     def build_ui(self):
+        base = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'assets'))
         t = self.theme
         fg_label = "white" if t['mode'] == "dark" else "#0C151C"
         box_bg = "#2A4A62"
 
         tk.Label(self, text="Heart Rate", fg=fg_label, bg=t['bg'],
                  font=("Roboto", 36, "bold")).pack(pady=10)
-        img = Image.open(r"C:\Users\Acer\Desktop\svg\heart rate (loading) png.png")\
+        img = Image.open(os.path.join(base,'heart_rate_loading.png'))\
                 .resize((90, 90), Image.Resampling.LANCZOS)
         self.icon = ImageTk.PhotoImage(img)
         tk.Label(self, image=self.icon, bg=t['bg']).place(x=190, y=100)
@@ -260,9 +261,10 @@ class HeartRateResultScreen(tk.Frame):
         self.build_ui()
 
     def build_ui(self):
+        base = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'assets'))
         t = self.theme
         fg_val = t['fg'] if t['mode'] == "dark" else "#0C151C"
-        img_path = r"C:\Users\Acer\Desktop\svg\heart_rate_result_white.png" if t['mode'] == 'light' else r"C:\Users\Acer\Desktop\svg\heart rate (results) png.png"
+        img_path = os.path.join(base,"heart_rate_result_white.png") if t['mode'] == 'light' else os.path.join(base,"heart_rate_result.png")
         img = Image.open(img_path).resize((120, 120), Image.Resampling.LANCZOS)
         self.icon = ImageTk.PhotoImage(img)
         tk.Label(self, image=self.icon, bg=t['bg']).place(x=20, y=30)
