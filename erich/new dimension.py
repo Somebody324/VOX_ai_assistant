@@ -9,12 +9,10 @@ import os
 import subprocess
 
 def get_battery_voltage():
-    # Example using sysfs ADC (adjust path if necessary)
     try:
         with open('/sys/bus/iio/devices/iio:device0/in_voltage0_raw') as f:
             raw = int(f.read().strip())
-        # ADC specs: e.g., 0–4095 → 0–1.8 V, use voltage divider if needed
-        voltage = raw * (1.8 / 4096) * 2  # times divider ratio
+        voltage = raw * (1.8 / 4096) * 2
         return voltage
     except Exception:
         return None
@@ -33,11 +31,11 @@ class WifiSettingsScreen(tk.Frame):
         self.build()
 
     def build(self):
-        tk.Label(self, text="Select Wi‑Fi Network", fg=self.theme['fg'], bg=self.theme['bg'], font=("Roboto", 14)).pack(pady=10)
+        tk.Label(self, text="Select Wi‑Fi Network", fg=self.theme['fg'], bg=self.theme['bg'], font=("Roboto", 18)).pack(pady=10)
         self.ssids_frame = tk.Frame(self, bg=self.theme['bg'])
         self.ssids_frame.pack(fill="both", expand=True)
         self.scan_ssids()
-        self.create_button("Back", 10, 200, self.home_cb)
+        self.create_button("Back", 20, 300, self.home_cb)
 
     def create_button(self, text, x, y, cmd):
         but = tk.Button(self, text=text, command=cmd, width=10)
@@ -51,7 +49,7 @@ class WifiSettingsScreen(tk.Frame):
             lines = [l for l in output.splitlines() if l and not l.startswith('--')]
             for idx, line in enumerate(lines):
                 ssid = line.split(':')[0] or "<Hidden>"
-                btn = tk.Button(self.ssids_frame, text=ssid, width=30,
+                btn = tk.Button(self.ssids_frame, text=ssid, width=40,
                                 command=lambda s=ssid: self.connect_cb(s))
                 btn.pack(pady=2)
         except Exception as e:
@@ -59,18 +57,18 @@ class WifiSettingsScreen(tk.Frame):
 
 class WifiConnectScreen(tk.Frame):
     def __init__(self, parent, ssid, home_cb, theme):
-        super().__init__(parent, width=320, height=240, bg=theme['bg'])
+        super().__init__(parent, width=480, height=360, bg=theme['bg'])
         self.ssid = ssid
         self.home_cb = home_cb
         self.theme = theme
         self.build()
 
     def build(self):
-        tk.Label(self, text=f"Connect to {self.ssid}", fg=self.theme['fg'], bg=self.theme['bg'], font=("Roboto", 14)).pack(pady=10)
+        tk.Label(self, text=f"Connect to {self.ssid}", fg=self.theme['fg'], bg=self.theme['bg'], font=("Roboto", 18)).pack(pady=10)
         self.pwd_entry = tk.Entry(self, show="*")
         self.pwd_entry.pack(pady=5)
-        self.create_button("Connect", 210, 180, self.attempt_connect)
-        self.create_button("Cancel", 20, 180, self.home_cb)
+        self.create_button("Connect", 310, 280, self.attempt_connect)
+        self.create_button("Cancel", 20, 280, self.home_cb)
 
     def create_button(self, text, x, y, cmd):
         but = tk.Button(self, text=text, command=cmd, width=10)
@@ -83,7 +81,7 @@ class WifiConnectScreen(tk.Frame):
 
 class HeartRateReviewScreen(tk.Frame):
     def __init__(self, parent, home_callback, bpm_history, theme):
-        super().__init__(parent, width=320, height=240, bg=theme['bg'])
+        super().__init__(parent, width=480, height=360, bg=theme['bg'])
         self.theme = theme
         self.home_callback = home_callback
         self.bpm_history = bpm_history
@@ -97,8 +95,8 @@ class HeartRateReviewScreen(tk.Frame):
         self.scrollable.bind("<Configure>", lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all")))
         self.canvas.create_window((0, 0), window=self.scrollable, anchor="nw")
         self.canvas.configure(yscrollcommand=self.scrollbar.set)
-        self.canvas.place(x=0, y=30, width=310, height=150)
-        self.scrollbar.place(x=300, y=0, height=200)
+        self.canvas.place(x=0, y=30, width=470, height=250)
+        self.scrollbar.place(x=470, y=30, height=250)
         self.canvas.bind_all("<MouseWheel>", lambda e: self.canvas.yview_scroll(int(-1*(e.delta/120)), "units"))
 
         for entry in reversed(self.bpm_history):
@@ -108,12 +106,12 @@ class HeartRateReviewScreen(tk.Frame):
             vals = [e['bpm'] for e in self.bpm_history]
             avg, mn, mx = sum(vals) // len(vals), min(vals), max(vals)
             avg_color = "#67DE8B" if avg <= 99 else "#E62B2B"
-            tk.Label(self, text=f"Avg: {avg}", fg=avg_color, bg=t['bg'], font=("Roboto", 12, "bold")).place(x=20, y=5)
-            tk.Label(self, text=f"Min: {mn}", fg=t['fg'], bg=t['bg'], font=("Roboto", 12)).place(x=120, y=5)
-            tk.Label(self, text=f"Max: {mx}", fg=t['fg'], bg=t['bg'], font=("Roboto", 12)).place(x=210, y=5)
+            tk.Label(self, text=f"Avg: {avg}", fg=avg_color, bg=t['bg'], font=("Roboto", 14, "bold")).place(x=20, y=5)
+            tk.Label(self, text=f"Min: {mn}", fg=t['fg'], bg=t['bg'], font=("Roboto", 14)).place(x=120, y=5)
+            tk.Label(self, text=f"Max: {mx}", fg=t['fg'], bg=t['bg'], font=("Roboto", 14)).place(x=220, y=5)
 
-        self.create_rounded_button("Home", 195, 200, self.home_callback)
-        self.create_rounded_button("Export", 25, 200, self.export_bpm_history)
+        self.create_rounded_button("Home", 295, 300, self.home_callback)
+        self.create_rounded_button("Export", 25, 300, self.export_bpm_history)
 
     def create_rounded_button(self, text, x, y, command):
         button_bg = "#2A5062"
@@ -127,7 +125,7 @@ class HeartRateReviewScreen(tk.Frame):
         button.bind("<Button-1>", lambda e: command())
 
     def _add_entry(self, e):
-        f = tk.Frame(self.scrollable, bg="#2A5062", width=290, height=50)
+        f = tk.Frame(self.scrollable, bg="#2A5062", width=450, height=50)
         f.pack(pady=5, padx=8)
         dt = e['dt'].strftime("%m/%d-%I:%M %p")
         tk.Label(f, text=dt, fg="white", bg="#2A5062", font=("Roboto", 12)).place(x=12, y=10)
@@ -144,15 +142,15 @@ class HeartRateReviewScreen(tk.Frame):
 
 class HomeScreen(tk.Frame):
     def __init__(self, parent, heart_callback, theme, toggle_theme):
-        super().__init__(parent, width=320, height=240, bg=theme['bg'])
+        super().__init__(parent, width=480, height=360, bg=theme['bg'])
         self.theme = theme
         self.heart_callback = heart_callback
         self.toggle_theme = toggle_theme
         self.icons = {}
         self.build_ui()
         self.update_time()
-        self.batt_label = tk.Label(self, text="--%", fg=theme['fg'], bg=theme['bg'], font=("Roboto", 12))
-        self.batt_label.place(x=230, y=10)
+        self.batt_label = tk.Label(self, text="--%", fg=theme['fg'], bg=theme['bg'], font=("Roboto", 14))
+        self.batt_label.place(x=400, y=10)
         self.update_battery()
 
     def build_ui(self):
@@ -178,20 +176,20 @@ class HomeScreen(tk.Frame):
         wifi_lbl.place(x=10, y=10)
         wifi_lbl.bind("<Button-1>", lambda e: self.heart_callback.__self__.show_frame("WifiList"))
 
-        tk.Label(self, image=self.icons["battery"], bg=t['bg']).place(x=260, y=10)
+        tk.Label(self, image=self.icons["battery"], bg=t['bg']).place(x=360, y=10)
         mode_lbl = tk.Label(self, image=self.icons["mode"], bg=t['bg'])
-        mode_lbl.place(x=285, y=10)
+        mode_lbl.place(x=400, y=10)
         mode_lbl.bind("<Button-1>", lambda e: self.toggle_theme())
 
         heart_btn = tk.Button(self, image=self.icons["heart"], command=self.heart_callback,
                               bg="#0C151C" if t['mode'] == 'dark' else "white",
                               borderwidth=0, activebackground=t['bg'])
-        heart_btn.place(x=50, y=130, width=100, height=100)
+        heart_btn.place(x=80, y=200, width=100, height=100)
 
         mic_btn = tk.Button(self, image=self.icons["mic"],
                             bg="#0C151C" if t['mode'] == 'dark' else "white",
                             borderwidth=0, activebackground=t['bg'])
-        mic_btn.place(x=170, y=130, width=100, height=100)
+        mic_btn.place(x=280, y=200, width=100, height=100)
 
         self.time_label = tk.Label(self, text="", fg="#1DCFE3", bg=t['bg'], font=("Roboto", 36, "bold"))
         self.time_label.pack(pady=(30, 0))
@@ -208,11 +206,11 @@ class HomeScreen(tk.Frame):
         v = get_battery_voltage()
         pct = voltage_to_percent(v)
         self.batt_label.config(text=f"{pct}%")
-        self.after(60000, self.update_battery)  # update every minute
+        self.after(60000, self.update_battery)
 
 class HeartRateScreen(tk.Frame):
     def __init__(self, parent, result_cb, theme):
-        super().__init__(parent, width=320, height=240, bg=theme['bg'])
+        super().__init__(parent, width=480, height=360, bg=theme['bg'])
         self.theme = theme
         self.result_cb = result_cb
         self.build_ui()
@@ -225,14 +223,14 @@ class HeartRateScreen(tk.Frame):
         box_bg = "#2A4A62"
 
         tk.Label(self, text="Heart Rate", fg=fg_label, bg=t['bg'],
-                 font=("Roboto", 32, "bold")).pack(pady=10)
+                 font=("Roboto", 36, "bold")).pack(pady=10)
         img = Image.open(r"C:\Users\Acer\Desktop\svg\heart rate (loading) png.png")\
                 .resize((90, 90), Image.Resampling.LANCZOS)
         self.icon = ImageTk.PhotoImage(img)
-        tk.Label(self, image=self.icon, bg=t['bg']).place(x=110, y=70)
+        tk.Label(self, image=self.icon, bg=t['bg']).place(x=190, y=100)
         self.txt = tk.Label(self, text="Measuring...", fg="white", bg=box_bg,
                             font=("Roboto", 14), width=20)
-        self.txt.place(x=50, y=180)
+        self.txt.place(x=150, y=280)
 
     def start_measurement(self):
         if not self.is_animating:  
@@ -260,7 +258,7 @@ class HeartRateScreen(tk.Frame):
 
 class HeartRateResultScreen(tk.Frame):
     def __init__(self, parent, home_cb, hist_cb, bpm_history, theme):
-        super().__init__(parent, width=320, height=240, bg=theme['bg'])
+        super().__init__(parent, width=480, height=360, bg=theme['bg'])
         self.theme = theme
         self.home_cb = home_cb
         self.hist_cb = hist_cb
@@ -276,14 +274,14 @@ class HeartRateResultScreen(tk.Frame):
         tk.Label(self, image=self.icon, bg=t['bg']).place(x=20, y=30)
 
         self.rate = tk.Label(self, text="0", fg=fg_val, bg=t['bg'], font=("Roboto", 44, "bold"))
-        self.rate.place(x=160, y=45)
+        self.rate.place(x=260, y=45)
         self.bpm = tk.Label(self, text="BPM", fg=fg_val, bg=t['bg'], font=("Roboto", 18))
-        self.bpm.place(x=234, y=80)
+        self.bpm.place(x=334, y=80)
         self.status = tk.Label(self, text="Status", fg=fg_val, bg=t['bg'], font=("Roboto", 16))
-        self.status.place(x=170, y=105)
+        self.status.place(x=270, y=105)
 
-        self.create_rounded_button("History", 110, 155, self.hist_cb)
-        self.create_rounded_button("Home", 110, 189, self.home_cb)
+        self.create_rounded_button("History", 180, 280, self.hist_cb)
+        self.create_rounded_button("Home", 180, 320, self.home_cb)
 
     def create_rounded_button(self, text, x, y, command):
         button_bg = "#2A5062"
@@ -300,14 +298,14 @@ class HeartRateResultScreen(tk.Frame):
         h = random.randint(60, 140)
         self.rate.config(text=str(h))
         self.bpm_history.insert(0, {'dt': datetime.now(), 'bpm': h})
-        status, color, x = ("Normal", "#67DE8B", 234) if h <= 99 else ("Elevated", "#E62B2B", 260)
+        status, color, x = ("Normal", "#67DE8B", 334) if h <= 99 else ("Elevated", "#E62B2B", 360)
         self.bpm.place(x=x, y=80); self.status.config(text=status, fg=color)
 
 class MainApplication(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Heart Monitor")
-        self.geometry("320x240")
+        self.geometry("480x360")
         self.resizable(False, False)
         self.bpm_history = []
         self.is_dark = True
@@ -326,17 +324,16 @@ class MainApplication(tk.Tk):
     def build_frames(self, theme):
         for name, cls, args in [
             ("Home",    HomeScreen,             (self.container, self.switch_to_heart, theme, self.toggle_theme)),
-            ("Heart",   HeartRateScreen,        (self.container, self.show_result_screen, theme)),
+            ("Heart",   HeartRateScreen,        (self.container,             self.show_result_screen, theme)),
             ("Result",  HeartRateResultScreen,  (self.container, self.show_home, self.show_review, self.bpm_history, theme)),
             ("Review",  HeartRateReviewScreen,  (self.container, self.show_home, self.bpm_history, theme)),
             ("WifiList", WifiSettingsScreen,    (self.container, self.show_home, self.goto_connect, theme)),
             ("WifiConnect", WifiConnectScreen,  (self.container, "", self.show_home, theme)),
         ]:
             frame = cls(*args)
-            frame.place(x=0, y=0, width=320, height=240)
+            frame.place(x=0, y=0, width=480, height=360)
             self.frames[name] = frame
         self.show_frame("Home")
-
 
     def toggle_theme(self):
         self.is_dark = not self.is_dark
@@ -361,7 +358,7 @@ class MainApplication(tk.Tk):
         old = self.frames["Review"]
         old.destroy()
         frame = HeartRateReviewScreen(self.container, self.show_home, self.bpm_history, self.current_theme)
-        frame.place(x=0, y=0, width=320, height=240)
+        frame.place(x=0, y=0, width=480, height=360)
         self.frames["Review"] = frame
         self.show_frame("Review")
 
@@ -370,7 +367,7 @@ class MainApplication(tk.Tk):
         frame.ssid = ssid
         frame.destroy()
         frame = WifiConnectScreen(self.container, ssid, self.show_home, self.current_theme)
-        frame.place(x=0, y=0, width=320, height=240)
+        frame.place(x=0, y=0, width=480, height=360)
         self.frames['WifiConnect'] = frame
         self.show_frame("WifiConnect")
 
