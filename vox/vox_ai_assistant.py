@@ -20,8 +20,8 @@ MODEL_PATHS = {
 GEMINI_API_KEY = "AIzaSyBXMqCFlBgnm9cFwlWLXTNVC-vJKKlz2MA"  
 GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
 
-samplerate = 16000
-device = None
+samplerate = 48000
+device = 2
 
 engine = pyttsx3.init()
 engine.setProperty('rate', 170)
