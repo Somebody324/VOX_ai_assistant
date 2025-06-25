@@ -11,7 +11,6 @@ import queue
 import sounddevice as sd
 import json
 import threading
-import keyboard
 import requests
 import pyttsx3
 from vosk import Model, KaldiRecognizer
@@ -19,6 +18,39 @@ from vosk import Model, KaldiRecognizer
 
 WIDTH = 480
 HEIGHT = 360
+
+GEMINI_API_KEY = "AIzaSyBXMqCFlBgnm9cFwlWLXTNVC-vJKKlz2MA"  
+GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+
+def send_to_gemini(user_input):
+    headers = {"Content-Type": "application/json"}
+
+    system_message = (
+        "You are Aria, a smart, witty, and polite personal assistant AI. "
+        "You are helpful, concise, and always respond as if you're speaking to your user personally. "
+        "You only answer briefly to all inquiries."
+    )
+
+    data = {
+        "contents": [
+            {
+                "parts": [
+                    {"text": system_message},
+                    {"text": user_input}
+                ]
+            }
+        ]
+    }
+
+    try:
+        response = requests.post(GEMINI_URL, headers=headers, json=data)
+        if response.status_code == 200:
+            content = response.json()
+            return content['candidates'][0]['content']['parts'][0]['text']
+        else:
+            return f"Error {response.status_code}: {response.text}"
+    except Exception as e:
+        return f"Exception while calling Gemini: {e}"
 
 
 def get_battery_voltage():
@@ -34,6 +66,9 @@ def voltage_to_percent(v):
     if v is None: return "--"
     v = max(3.0, min(4.2, v))
     return int((v - 3.0) / (4.2 - 3.0) * 100)
+
+
+
 
 class WifiSettingsScreen(tk.Frame):
     def __init__(self, parent, home_cb, connect_cb, theme):
@@ -316,28 +351,101 @@ class HeartRateResultScreen(tk.Frame):
         self.bpm_history.insert(0, {'dt': datetime.now(), 'bpm': h})
         status, color, x = ("Normal", "#67DE8B", 334) if h <= 99 else ("Elevated", "#E62B2B", 360)
         self.bpm.place(x=x, y=80); self.status.config(text=status, fg=color)
-        
 
+
+class AriaResponseScreen(tk.Frame): 
+    def __init__(self, parent, response_text, back_callback, mic_callback, tts_engine, theme):
+        super().__init__(parent, width=480, height=360, bg=theme['bg'])
+        self.theme = theme
+        self.tts_engine = tts_engine
+        self.back_callback = back_callback
+        self.mic_callback = mic_callback
+        self.response_text = response_text
+        self.build_ui()
+
+        # Placeholder while waiting for Gemini
+        self.text_box.insert("1.0", "Aria is thinking ...")
+
+        # Call Gemini in separate thread
+        threading.Thread(target=self.fetch_response_from_gemini, daemon=True).start()
+
+    def fetch_response_from_gemini(self):
+        reply = send_to_gemini(self.response_text)
+        self.after(0, self.update_text_box, reply)
+
+    def update_text_box(self, new_text):
+        self.text_box.config(state="normal")
+        self.text_box.delete("1.0", "end")
+        self.text_box.insert("1.0", new_text)
+        self.text_box.config(state="disabled")
+        
+        # 🔊 Trigger speech after text is displayed
+        threading.Thread(target=self.speak, args=(new_text,), daemon=True).start()
+
+
+    def build_ui(self):
+        t = self.theme
+        fg = "white" if t["mode"] == "dark" else "black"
+
+        box_width = 400
+        box_height = 220
+
+        self.text_box = tk.Text(
+            self,
+            height=10,
+            width=50,
+            font=("Roboto", 18, "bold"),
+            bg="#2A5062",
+            fg="white",
+            insertbackground="white",
+            borderwidth=0,
+            wrap="word",
+            padx=10,
+            pady=10
+        )
+        self.text_box.place(x=(480 - box_width) // 2, y=40, width=box_width, height=box_height)
+        self.text_box.config(state="normal")
+
+        button_width = 220
+        spacing = 20
+        total_width = button_width * 2 + spacing
+        x_start = (480 - total_width) // 2
+        y_pos = 290
+
+        self.create_rounded_button("Try Again", x_start, y_pos, self.mic_callback)
+        self.create_rounded_button("Home", x_start + button_width + spacing, y_pos, self.back_callback)
+
+    def create_rounded_button(self, text, x, y, command):
+        button_bg = "#2A5062"
+        radius = 10
+
+        button = tk.Canvas(self, width=220, height=50, bg=button_bg, highlightthickness=0, cursor="hand2")
+        button.place(x=x, y=y)
+
+        button.create_oval(0, 0, radius * 2, radius * 2, fill=button_bg, outline=button_bg)
+        button.create_oval(220 - radius * 2, 0, 220, radius * 2, fill=button_bg, outline=button_bg)
+        button.create_rectangle(radius, 0, 220 - radius, 50, fill=button_bg, outline=button_bg)
+        button.create_text(110, 25, text=text, fill="white", font=("Roboto", 14, 'bold'))
+
+        button.bind("<Button-1>", lambda e: command())
+        return button
+    
+    def speak(self, response):
+        print(f"Starting TTS .....")
+        self.tts_engine.say(response)
+        self.tts_engine.runAndWait()
+        self.tts_engine.stop()
+            
+        
 class MicRecordingScreen(tk.Frame):
-    def __init__(self, parent, back_callback, theme):
+    def __init__(self, parent, back_callback, vosk_model, theme):
         super().__init__(parent, width=480, height=360, bg=theme['bg'])
         self.theme = theme
         self.back_callback = back_callback
         self.build_ui()
 
         # vosk model
-        self.LANGUAGE = "english"
-        self.MODEL_PATHS = {
-            "english": "models/vosk-model-small-en-us-0.15",
-        }
-
-        if self.LANGUAGE not in self.MODEL_PATHS:
-            raise ValueError("Unsupported language")
-
-        if not os.path.exists(self.MODEL_PATHS[self.LANGUAGE]):
-            raise FileNotFoundError(f"Model not found at {self.MODEL_PATHS[self.LANGUAGE]}")
-
-        self.model = Model(self.MODEL_PATHS[self.LANGUAGE])
+        self.model = vosk_model
         self.q = queue.Queue()
 
         # audio config        
@@ -364,7 +472,7 @@ class MicRecordingScreen(tk.Frame):
             self,
             height=10,
             width=50,
-            font=("Roboto", 14, "bold"),  # Bold font
+            font=("Roboto", 22, "bold"),  # Bold font
             bg="#2A5062",
             fg="white",
             insertbackground="white",
@@ -431,12 +539,6 @@ class MicRecordingScreen(tk.Frame):
         self.q.put(bytes(indata))
 
 
-    def back_callback(self):
-        self.destroy()  # Destroys current screen/frame
-        parent = self.master  # Reference to the parent container
-        new_screen = MicRecordingScreen(parent, self.back_callback, self.theme)
-        new_screen.pack()  # Or .place(), depending on layout
-
     def recorder(self):
 
         try:
@@ -468,6 +570,10 @@ class MicRecordingScreen(tk.Frame):
             self.is_recording = False
             self.update_button_text(self.toggle_button, "Start Recording")
             self.restore_placeholder()
+            recorded_text = self.text_box.get("1.0", "end-1c").strip()
+            self.master.master.show_aria_response(recorded_text)
+            print("\nFull transcription: {recorded_text}")
+
 
 class MainApplication(tk.Tk):
     def __init__(self):
@@ -477,6 +583,30 @@ class MainApplication(tk.Tk):
         self.resizable(False, False)
         self.bpm_history = []
         self.is_dark = True
+
+        # load text to speech engine
+        self.tts_engine = pyttsx3.init()
+        self.tts_engine.setProperty('rate', 170)
+        self.voices = self.tts_engine.getProperty('voices')
+        self.tts_engine.setProperty('voice', self.voices[1].id)
+
+
+
+        # load model once
+        self.LANGUAGE = "english"
+        self.MODEL_PATHS = {
+            "english": "models/vosk-model-small-en-us-0.15",
+        }
+
+        if self.LANGUAGE not in self.MODEL_PATHS:
+            raise ValueError("Unsupported language")
+
+        if not os.path.exists(self.MODEL_PATHS[self.LANGUAGE]):
+            raise FileNotFoundError(f"Model not found at {self.MODEL_PATHS[self.LANGUAGE]}")
+
+
+        self.vosk_model = Model(self.MODEL_PATHS[self.LANGUAGE])
+
         self.themes = {
             'dark': {'mode':'dark','bg':"#0C151C", 'fg':"white", 'accent':"#2A5062", 'ok':"#67DE8B", 'warn':"#E62B2B"},
             'light':{'mode':'light','bg':"white", 'fg':"black", 'accent':"#0C151C", 'ok':"#008000", 'warn':"#FF0000"}
@@ -484,6 +614,7 @@ class MainApplication(tk.Tk):
         self.container = tk.Frame(self); self.container.pack(fill="both", expand=True)
         self.frames = {}
         self.build_frames(self.current_theme)
+
 
     @property
     def current_theme(self):
@@ -497,14 +628,15 @@ class MainApplication(tk.Tk):
             ("Review",  HeartRateReviewScreen,  (self.container, self.show_home, self.bpm_history, theme)),
             ("WifiList", WifiSettingsScreen,    (self.container, self.show_home, self.goto_connect, theme)),
             ("WifiConnect", WifiConnectScreen,  (self.container, "", self.show_home, theme)),
-            ("Mic", MicRecordingScreen, (self.container, self.show_home, theme))
-
+            ("Mic", MicRecordingScreen, (self.container, self.show_home, self.vosk_model, theme)),
+            ("AriaResponse", AriaResponseScreen, (self.container, "", self.show_home, self.show_mic, self.tts_engine, theme))
         ]:
             frame = cls(*args)
             frame.place(x=0, y=0, width=480, height=360)
-            
             self.frames[name] = frame
+
         self.show_frame("Home")
+
 
     def toggle_theme(self):
         self.is_dark = not self.is_dark
@@ -516,12 +648,21 @@ class MainApplication(tk.Tk):
         old.destroy()
 
         # Recreate a fresh MicRecordingScreen
-        frame = MicRecordingScreen(self.container, self.show_home, self.current_theme)
+        frame = MicRecordingScreen(self.container, self.show_home, self.vosk_model, self.current_theme)
         frame.place(x=0, y=0, width=480, height=360)
 
         self.frames["Mic"] = frame
         self.show_frame("Mic")
+        
+    def show_aria_response(self, response_text):
+        old = self.frames.get("AriaResponse")
+        if old:
+            old.destroy()
 
+        frame = AriaResponseScreen(self.container, response_text, self.show_home, self.show_mic, self.tts_engine, self.current_theme)
+        frame.place(x=0, y=0, width=480, height=360)
+        self.frames["AriaResponse"] = frame
+        self.show_frame("AriaResponse")
 
 
     def show_frame(self, name):
