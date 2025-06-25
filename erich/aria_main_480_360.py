@@ -7,6 +7,19 @@ from PIL import Image, ImageTk
 import csv
 import os
 import subprocess
+import queue
+import sounddevice as sd
+import json
+import threading
+import keyboard
+import requests
+import pyttsx3
+from vosk import Model, KaldiRecognizer
+
+
+WIDTH = 480
+HEIGHT = 360
+
 
 def get_battery_voltage():
     try:
@@ -141,11 +154,12 @@ class HeartRateReviewScreen(tk.Frame):
         print("BPM history exported to bpm_history.csv")
 
 class HomeScreen(tk.Frame):
-    def __init__(self, parent, heart_callback, theme, toggle_theme):
+    def __init__(self, parent, heart_callback, mic_callback, theme, toggle_theme):
         super().__init__(parent, width=320, height=240, bg=theme['bg'])
         self.theme = theme
         self.heart_callback = heart_callback
         self.toggle_theme = toggle_theme
+        self.mic_callback = mic_callback
         self.icons = {}
         self.build_ui()
         self.update_time()
@@ -172,7 +186,7 @@ class HomeScreen(tk.Frame):
         load("battery", "battery_perma.png", (22, 18))
         load("heart", "heart_icon.png" if t['mode'] == 'dark' else "heart_icon_home_white.png", (180, 180))
         load("mic", "mic_icon.png" if t['mode'] == 'dark' else "mic_icon_home_white.png", (180, 180))
-        # load("mode", "dark_mode.png" if t['mode'] == 'dark' else "light_mode.png", (18, 18))
+        load("mode", "dark_mode.png" if t['mode'] == 'dark' else "light_mode.png", (18, 18))
 
 
         tk.Label(self, image=self.icons["wifi"], bg=t['bg']).place(x=220, y=10)
@@ -185,8 +199,8 @@ class HomeScreen(tk.Frame):
                               bg="#0C151C" if t['mode'] == 'dark' else "white",
                               borderwidth=0, activebackground=t['bg'])
         heart_btn.place(x=50, y=130, width=180, height=180)
-
-        mic_btn = tk.Button(self, image=self.icons["mic"],
+        
+        mic_btn = tk.Button(self, image=self.icons["mic"], command=self.mic_callback,
                             bg="#0C151C" if t['mode'] == 'dark' else "white",
                             borderwidth=0, activebackground=t['bg'])
         mic_btn.place(x=250, y=130, width=180, height=180)
@@ -212,20 +226,26 @@ class HeartRateScreen(tk.Frame):
         self.animation_id = None   
 
     def build_ui(self):
+
         base = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'assets'))
         t = self.theme
         fg_label = "white" if t['mode'] == "dark" else "#0C151C"
         box_bg = "#2A4A62"
 
+        # Title
         tk.Label(self, text="Heart Rate", fg=fg_label, bg=t['bg'],
-                 font=("Roboto", 36, "bold")).pack(pady=10)
-        img = Image.open(os.path.join(base,'heart_rate_loading.png'))\
-                .resize((90, 90), Image.Resampling.LANCZOS)
+                font=("Roboto", 36, "bold")).place(x=(WIDTH - 250) // 2, y=10)  # ~250px text width
+
+        # Image
+        img = Image.open(os.path.join(base, 'heart_rate_loading.png'))\
+                .resize((180, 180), Image.Resampling.LANCZOS)
         self.icon = ImageTk.PhotoImage(img)
-        tk.Label(self, image=self.icon, bg=t['bg']).place(x=190, y=100)
+        tk.Label(self, image=self.icon, bg=t['bg']).place(x=(WIDTH - 180) // 2, y=70)
+
+        # Text label
         self.txt = tk.Label(self, text="Measuring...", fg="white", bg=box_bg,
-                            font=("Roboto", 14), width=20)
-        self.txt.place(x=150, y=280)
+                            font=("Roboto", 14, "bold"), width=20, height=2)
+        self.txt.place(x=(WIDTH - 220) // 2, y=280)
 
     def start_measurement(self):
         if not self.is_animating:  
@@ -265,29 +285,29 @@ class HeartRateResultScreen(tk.Frame):
         t = self.theme
         fg_val = t['fg'] if t['mode'] == "dark" else "#0C151C"
         img_path = os.path.join(base,"heart_rate_result_white.png") if t['mode'] == 'light' else os.path.join(base,"heart_rate_result.png")
-        img = Image.open(img_path).resize((120, 120), Image.Resampling.LANCZOS)
+        img = Image.open(img_path).resize((200, 200), Image.Resampling.LANCZOS)
         self.icon = ImageTk.PhotoImage(img)
-        tk.Label(self, image=self.icon, bg=t['bg']).place(x=20, y=30)
+        tk.Label(self, image=self.icon, bg=t['bg']).place(x=30, y=20)
 
-        self.rate = tk.Label(self, text="0", fg=fg_val, bg=t['bg'], font=("Roboto", 44, "bold"))
-        self.rate.place(x=260, y=45)
-        self.bpm = tk.Label(self, text="BPM", fg=fg_val, bg=t['bg'], font=("Roboto", 18))
-        self.bpm.place(x=334, y=80)
+        self.rate = tk.Label(self, text="0", fg=fg_val, bg=t['bg'], font=("Roboto", 60, "bold"))
+        self.rate.place(x=240, y=45)
+        self.bpm = tk.Label(self, text="BPM", fg=fg_val, bg=t['bg'], font=("Roboto", 22))
+        self.bpm.place(x=440, y=80)
         self.status = tk.Label(self, text="Status", fg=fg_val, bg=t['bg'], font=("Roboto", 16))
-        self.status.place(x=270, y=105)
+        self.status.place(x=270, y=135)
 
-        self.create_rounded_button("History", 180, 280, self.hist_cb)
-        self.create_rounded_button("Home", 180, 320, self.home_cb)
+        self.create_rounded_button("History", (WIDTH - 220) // 2, 220, self.hist_cb)
+        self.create_rounded_button("Home", (WIDTH - 220) // 2, 280, self.home_cb)
 
     def create_rounded_button(self, text, x, y, command):
         button_bg = "#2A5062"
         radius = 10
-        button = tk.Canvas(self, width=100, height=30, bg=button_bg, highlightthickness=0)
+        button = tk.Canvas(self, width=220, height=50, bg=button_bg, highlightthickness=0)
         button.place(x=x, y=y)
         button.create_oval(0, 0, radius*2, radius*2, fill=button_bg, outline=button_bg)
-        button.create_oval(100-radius*2, 0, 100, radius*2, fill=button_bg, outline=button_bg)
-        button.create_rectangle(radius, 0, 100-radius, 30, fill=button_bg, outline=button_bg)
-        button.create_text(50, 15, text=text, fill="white", font=("Roboto", 12))
+        button.create_oval(220-radius*2, 0, 220, radius*2, fill=button_bg, outline=button_bg)
+        button.create_rectangle(radius, 0, 220-radius, 50, fill=button_bg, outline=button_bg)
+        button.create_text(220 // 2, 25, text=text, fill="white", font=("Roboto", 14, 'bold'))
         button.bind("<Button-1>", lambda e: command())
 
     def generate_heart_rate(self):
@@ -296,6 +316,158 @@ class HeartRateResultScreen(tk.Frame):
         self.bpm_history.insert(0, {'dt': datetime.now(), 'bpm': h})
         status, color, x = ("Normal", "#67DE8B", 334) if h <= 99 else ("Elevated", "#E62B2B", 360)
         self.bpm.place(x=x, y=80); self.status.config(text=status, fg=color)
+        
+
+class MicRecordingScreen(tk.Frame):
+    def __init__(self, parent, back_callback, theme):
+        super().__init__(parent, width=480, height=360, bg=theme['bg'])
+        self.theme = theme
+        self.back_callback = back_callback
+        self.build_ui()
+
+        # vosk model
+        self.LANGUAGE = "english"
+        self.MODEL_PATHS = {
+            "english": "models/vosk-model-small-en-us-0.15",
+        }
+
+        if self.LANGUAGE not in self.MODEL_PATHS:
+            raise ValueError("Unsupported language")
+
+        if not os.path.exists(self.MODEL_PATHS[self.LANGUAGE]):
+            raise FileNotFoundError(f"Model not found at {self.MODEL_PATHS[self.LANGUAGE]}")
+
+        self.model = Model(self.MODEL_PATHS[self.LANGUAGE])
+        self.q = queue.Queue()
+
+        # audio config        
+        self.samplerate = 18000
+        self.device = 1
+        self.device_info = sd.query_devices(kind='input')
+        self.input_channels = self.device_info['max_input_channels']
+        self.recognizer = KaldiRecognizer(self.model, self.samplerate)
+
+        # state
+        self.is_recording = False
+        self.recording_thread = None
+
+        print(sd.query_devices())
+
+    def build_ui(self):
+        t = self.theme
+        fg = "white" if t["mode"] == "dark" else "black"
+
+        box_width = 400
+        box_height = 220
+
+        self.text_box = tk.Text(
+            self,
+            height=10,
+            width=50,
+            font=("Roboto", 14, "bold"),  # Bold font
+            bg="#2A5062",
+            fg="white",
+            insertbackground="white",
+            borderwidth=0,
+            wrap="word",
+            padx=10,  # Horizontal padding inside the Text widget
+            pady=10   # Vertical padding inside the Text widget
+        )
+
+        self.text_box.place(x=(480 - box_width)//2, y=70, width=box_width, height=box_height)
+
+        self.placeholder_text = "Speak now..."
+        self.text_box.insert("1.0", self.placeholder_text)
+        self.text_box.configure(fg="white")
+
+        self.text_box.bind("<FocusIn>", self.clear_placeholder)
+        self.text_box.bind("<FocusOut>", self.restore_placeholder)
+
+        self.recording_label = tk.Label(self, text="Recording...", fg=fg, bg=t['bg'], font=("Roboto", 18, "bold"))
+        self.recording_label.place(x=(480 - 150)//2, y=310)
+
+        self.create_rounded_button("Back", (480 - 220) // 2, 10, self.back_callback)
+
+        # Store the toggle button for later access
+        self.toggle_button = self.create_rounded_button("Start Recording", (480 - 220) // 2, 300, self.toggle_recording)
+
+    def create_rounded_button(self, text, x, y, command):
+        button_bg = "#2A5062"
+        radius = 10
+
+        button = tk.Canvas(self, width=220, height=50, bg=button_bg, highlightthickness=0, cursor="hand2")
+        button.place(x=x, y=y)
+
+        button.create_oval(0, 0, radius * 2, radius * 2, fill=button_bg, outline=button_bg)
+        button.create_oval(220 - radius * 2, 0, 220, radius * 2, fill=button_bg, outline=button_bg)
+        button.create_rectangle(radius, 0, 220 - radius, 50, fill=button_bg, outline=button_bg)
+        text_id = button.create_text(220 // 2, 25, text=text, fill="white", font=("Roboto", 14, 'bold'))
+
+        # Bind click event
+        button.bind("<Button-1>", lambda e: command())
+
+        # Store reference to text item for updates
+        button.text_id = text_id
+        return button
+
+    def update_button_text(self, button, new_text):
+        button.itemconfig(button.text_id, text=new_text)
+
+    def clear_placeholder(self, event=None):
+        current = self.text_box.get("1.0", "end-1c")
+        if current == self.placeholder_text:
+            self.text_box.delete("1.0", "end")
+            self.text_box.configure(fg="white")
+
+    def restore_placeholder(self, event=None):
+        current = self.text_box.get("1.0", "end-1c").strip()
+        if not current:
+            self.text_box.insert("1.0", self.placeholder_text)
+            self.text_box.configure(fg="white")
+
+    def audio_callback(self, indata, frames, time, status):
+        if status:
+            print(f"Audio error: {status}")
+        self.q.put(bytes(indata))
+
+
+    def back_callback(self):
+        self.destroy()  # Destroys current screen/frame
+        parent = self.master  # Reference to the parent container
+        new_screen = MicRecordingScreen(parent, self.back_callback, self.theme)
+        new_screen.pack()  # Or .place(), depending on layout
+
+    def recorder(self):
+
+        try:
+            with sd.RawInputStream(samplerate=self.samplerate, blocksize=8000, dtype='int16',
+                                   channels=1, callback=self.audio_callback, device=self.device):
+                while self.is_recording:
+                    data = self.q.get()
+                    if self.recognizer.AcceptWaveform(data):
+                        result = json.loads(self.recognizer.Result())
+                        if result.get("text"):
+                            print("User:", result["text"])
+                            self.clear_placeholder()
+                            self.text_box.insert(tk.END, result["text"] + "\n")
+                            self.text_box.see(tk.END)
+        except Exception as e:
+            print(f"Recording error: {e}")
+
+    def toggle_recording(self):
+        if not self.is_recording:
+            # Start recording
+            print('Mic is open, recording ....')
+            self.is_recording = True
+            self.update_button_text(self.toggle_button, "Stop Recording")
+            self.recording_thread = threading.Thread(target=self.recorder, daemon=True)
+            self.recording_thread.start()
+        else:
+            # Stop recording
+            print('Mic is closed! recording stopped.')
+            self.is_recording = False
+            self.update_button_text(self.toggle_button, "Start Recording")
+            self.restore_placeholder()
 
 class MainApplication(tk.Tk):
     def __init__(self):
@@ -319,15 +491,18 @@ class MainApplication(tk.Tk):
 
     def build_frames(self, theme):
         for name, cls, args in [
-            ("Home",    HomeScreen,             (self.container, self.switch_to_heart, theme, self.toggle_theme)),
+            ("Home", HomeScreen, (self.container, self.switch_to_heart, self.show_mic, theme, self.toggle_theme)),
             ("Heart",   HeartRateScreen,        (self.container,             self.show_result_screen, theme)),
             ("Result",  HeartRateResultScreen,  (self.container, self.show_home, self.show_review, self.bpm_history, theme)),
             ("Review",  HeartRateReviewScreen,  (self.container, self.show_home, self.bpm_history, theme)),
             ("WifiList", WifiSettingsScreen,    (self.container, self.show_home, self.goto_connect, theme)),
             ("WifiConnect", WifiConnectScreen,  (self.container, "", self.show_home, theme)),
+            ("Mic", MicRecordingScreen, (self.container, self.show_home, theme))
+
         ]:
             frame = cls(*args)
             frame.place(x=0, y=0, width=480, height=360)
+            
             self.frames[name] = frame
         self.show_frame("Home")
 
@@ -335,6 +510,19 @@ class MainApplication(tk.Tk):
         self.is_dark = not self.is_dark
         for f in self.frames.values(): f.destroy()
         self.build_frames(self.current_theme)
+    def show_mic(self):
+
+        old = self.frames["Mic"]
+        old.destroy()
+
+        # Recreate a fresh MicRecordingScreen
+        frame = MicRecordingScreen(self.container, self.show_home, self.current_theme)
+        frame.place(x=0, y=0, width=480, height=360)
+
+        self.frames["Mic"] = frame
+        self.show_frame("Mic")
+
+
 
     def show_frame(self, name):
         self.frames[name].tkraise()

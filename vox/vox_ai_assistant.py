@@ -48,7 +48,6 @@ def speak(text):
     engine.say(text)
     engine.runAndWait()
     engine.stop()
-
 def audio_callback(indata, frames, time, status):
     if status:
         print(f"Audio error: {status}")
@@ -105,13 +104,6 @@ def recorder():
                 except Exception as e:
                     print(f"Recording error: {e}")
             else:
-                '''
-                keyboard.wait('s')
-                if not recording:
-                    print("\nManual recording started. Press 'q' to stop.")
-                    result_text = []
-                    recording = True
-                '''
                 try:
                     data = q.get()
                     if recognizer.AcceptWaveform(data):
@@ -127,34 +119,6 @@ def recorder():
                             recording = True
                 except Exception as e:
                     print(f"Passive listen error: {e}")
-            
-'''       
-def recorder():
-    global recording, result_text, Aria_activated
-    with sd.RawInputStream(samplerate=samplerate, blocksize=8000, dtype='int16',
-                           channels=1, callback=audio_callback, device=device):
-        print("Aria is ready. Say 'hi' to begin. Press 's' to manually record. Press 'q' to stop.")
-        while True:
-            try:
-                data = q.get()
-                if recognizer.AcceptWaveform(data):
-                    result = json.loads(recognizer.Result())
-                    spoken = result.get("text", "").lower().strip()
-
-                    if recording:
-                        if spoken:
-                            print("Input:", spoken)
-                            result_text.append(spoken)
-                    else:
-                        if spoken == "hi":
-                            speak("Yes, sire! I'm listening just press 'q' when you're done.")
-                            Aria_activated = True
-                            result_text = []
-                            recording = True
-
-            except Exception as e:
-                print(f"Error: {e}")
-'''
 
 #KEYBOARD COMMAND
 def listen_for_keys():
@@ -197,24 +161,6 @@ def listen_for_keys():
             print("\nManual recording started. Press 'q' to stop.")
             result_text = []
             recording = True
-        
-        '''
-        #try:
-            data = q.get()
-            if recognizer.AcceptWaveform(data):
-                result = json.loads(recognizer.Result())
-                spoken = result.get("text", "").lower().strip()
-                if spoken == "hi":
-                    #print("Aria: Yes, sire!")
-                    print("Hi, sire! I'm listening, just press 'q' when you're done.")
-                    Aria_activated = True
-                    #print("Aria:I'm listening just press 'q' when you're done.")
-                    #speak("I'm listening just press 'q' when you're done.")
-                    result_text = []
-                    recording = True
-        #except Exception as e:
-            #print(f"Passive listen error: {e}")
-        '''
 
 if __name__ == "__main__":
     try:
