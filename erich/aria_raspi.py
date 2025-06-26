@@ -397,7 +397,9 @@ class HeartRateScreen(tk.Frame):
 
             # Setup sensor
             # i2c = busio.I2C(board.SCL, board.SDA)  # Defaults to GPIO3 (SCL) and GPIO2 (SDA)
-            i2c = busio.I2C(scl=digitalio.DigitalInOut(board.D3), sda=digitalio.DigitalInOut(board.D2))
+            # i2c = busio.I2C(scl=digitalio.DigitalInOut(board.D3), sda=digitalio.DigitalInOut(board.D2))
+            
+            i2c = busio.I2C(board.SCL, board.SDA)
             ads = ADS.ADS1115(i2c)
             chan = AnalogIn(ads, ADS.P0)
 
