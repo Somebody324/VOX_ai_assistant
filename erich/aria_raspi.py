@@ -14,13 +14,38 @@ import threading
 import requests
 import pyttsx3
 from vosk import Model, KaldiRecognizer
+import urllib.request
+import io
+
 
 
 WIDTH = 480
 HEIGHT = 360
 
 GEMINI_API_KEY = "AIzaSyA1hka36sualOU7MPnwC4M5gAJgeuE19DM"  
+WEATHER_API_KEY = "9662b07f6e614151874170320252606"
 GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+
+
+def weather_update():
+    url = "http://api.weatherapi.com/v1/current.json"
+    params = {
+        "key": WEATHER_API_KEY,
+        "q": "Manila",
+        "aqi": "no"
+    }
+    try:
+        response = requests.get(url, params=params)
+        if response.status_code == 200:
+            weather_data = response.json()
+
+            
+
+            return weather_data
+        else:
+            return {"error": f"Weather API error: {response.status_code}"}
+    except Exception as e:
+        return {"error": f"Exception while calling Weather API: {e}"}
 
 def send_to_gemini(user_input):
     headers = {"Content-Type": "application/json"}
@@ -196,16 +221,26 @@ class HomeScreen(tk.Frame):
         self.toggle_theme = toggle_theme
         self.mic_callback = mic_callback
         self.icons = {}
+        self.spacing = 40
+        self.button_width = 140
+        self.total_width = 2 * self.button_width + self.spacing
+        self.start_x = (480 - self.total_width) // 2
+        self.weather_text = "Updating weather ..."
+        self.icon_label = tk.Label(self, bg=self.theme['bg'])
+        self.icon_label.pack()
+
         self.build_ui()
         self.update_time()
+        self.update_weather()
+
 
     def build_ui(self):
         import os
         from PIL import Image, ImageTk
+        from datetime import datetime  # Make sure this is imported
 
         t = self.theme
         base = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'assets'))
-
 
         def load(name, filename, size):
             try:
@@ -219,37 +254,79 @@ class HomeScreen(tk.Frame):
 
         load("wifi", "wifi_white.png" if t['mode'] == 'dark' else "wifi_black.png", (18, 18))
         load("battery", "battery_perma.png", (22, 18))
-        load("heart", "heart_icon.png" if t['mode'] == 'dark' else "heart_icon_home_white.png", (180, 180))
-        load("mic", "mic_icon.png" if t['mode'] == 'dark' else "mic_icon_home_white.png", (180, 180))
+        load("heart", "heart_icon.png" if t['mode'] == 'dark' else "heart_icon_home_white.png", (140, 140))
+        load("mic", "mic_icon.png" if t['mode'] == 'dark' else "mic_icon_home_white.png", (140, 140))
         load("mode", "dark_mode.png" if t['mode'] == 'dark' else "light_mode.png", (18, 18))
 
-
+        # Top bar icons
         tk.Label(self, image=self.icons["wifi"], bg=t['bg']).place(x=220, y=10)
         tk.Label(self, image=self.icons["battery"], bg=t['bg']).place(x=250, y=10)
+
         mode_lbl = tk.Label(self, image=self.icons["mode"], bg=t['bg'])
         mode_lbl.place(x=285, y=10)
         mode_lbl.bind("<Button-1>", lambda e: self.toggle_theme())
 
+        # Time and date
+        self.time_label = tk.Label(self, text="", fg="#1DCFE3", bg=t['bg'], font=("Roboto", 44, "bold"))
+        self.time_label.pack(pady=(10, 0))
+        self.date_label = tk.Label(self, text="", fg=t['fg'], bg=t['bg'], font=("Roboto", 14))
+        self.date_label.pack(pady=(0, 0))
+
+        # Weather icon and text container
+        weather_frame = tk.Frame(self, bg=t['bg'])
+        weather_frame.pack(pady=(0, 10))
+
+        self.icon_label = tk.Label(weather_frame, bg=t['bg'])
+        self.icon_label.pack(side='left', padx=(0, 10))
+
+        self.weather_label = tk.Label(weather_frame, text=self.weather_text, fg=t['fg'], bg=t['bg'], font=("Roboto", 14, "bold"))
+        self.weather_label.pack(side='left')
+
+        # Bottom icons
         heart_btn = tk.Button(self, image=self.icons["heart"], command=self.heart_callback,
-                              bg="#0C151C" if t['mode'] == 'dark' else "white",
-                              borderwidth=0, activebackground=t['bg'])
-        heart_btn.place(x=50, y=130, width=180, height=180)
-        
+                            bg="#0C151C" if t['mode'] == 'dark' else "white",
+                            borderwidth=0, activebackground=t['bg'])
+        heart_btn.place(x=self.start_x, y=200, width=140, height=140)
+
         mic_btn = tk.Button(self, image=self.icons["mic"], command=self.mic_callback,
                             bg="#0C151C" if t['mode'] == 'dark' else "white",
                             borderwidth=0, activebackground=t['bg'])
-        mic_btn.place(x=250, y=130, width=180, height=180)
-
-        self.time_label = tk.Label(self, text="", fg="#1DCFE3", bg=t['bg'], font=("Roboto", 36, "bold"))
-        self.time_label.pack(pady=(30, 0))
-        self.date_label = tk.Label(self, text="", fg=t['fg'], bg=t['bg'], font=("Roboto", 14))
-        self.date_label.pack()
+        mic_btn.place(x=self.start_x + self.button_width + self.spacing, y=200, width=140, height=140)
 
     def update_time(self):
         now = datetime.now()
         self.time_label.config(text=now.strftime("%I:%M %p"))
         self.date_label.config(text=now.strftime("%A, %B %d"))
         self.after(1000, self.update_time)
+
+    def update_weather(self):
+        try:
+            weather_data = weather_update()
+            location = weather_data['location']['name']
+            temp = weather_data['current']['temp_c']
+            feels_like = weather_data['current']['feelslike_c']
+            condition = weather_data['current']['condition']['text']
+            icon_url = "https:" + weather_data['current']['condition']['icon']
+
+            # Update text
+            self.weather_text = f"{round(temp)}°C, Feels like {round(feels_like)}°C\n{condition} | {location}"
+            self.weather_label.config(text=self.weather_text)
+
+            # Fetch icon from URL and show
+            with urllib.request.urlopen(icon_url) as u:
+                raw_data = u.read()
+            image = Image.open(io.BytesIO(raw_data)).resize((32, 32), Image.Resampling.LANCZOS)
+            self.weather_icon = ImageTk.PhotoImage(image)
+            self.icon_label.config(image=self.weather_icon)
+        except Exception as e:
+            print(f"Weather update failed: {e}")
+            self.weather_label.config(text="⚠️ Weather unavailable")
+            self.icon_label.config(image='')
+
+        self.after(900000, self.update_weather)  # update every 15 minutes
+ 
+            
+        
         
 class HeartRateScreen(tk.Frame):
     def __init__(self, parent, result_cb, theme):
@@ -259,7 +336,7 @@ class HeartRateScreen(tk.Frame):
         self.build_ui()
         self.is_animating = False  
         self.animation_id = None   
-
+    
     def build_ui(self):
 
         base = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'assets'))
@@ -452,7 +529,7 @@ class MicRecordingScreen(tk.Frame):
 
         # audio config        
         self.samplerate = 48000
-        self.device = 2
+        self.device = 3
         self.device_info = sd.query_devices(kind='input')
         self.input_channels = self.device_info['max_input_channels']
         self.recognizer = KaldiRecognizer(self.model, self.samplerate)
@@ -594,6 +671,7 @@ class MainApplication(tk.Tk):
         self.voices = self.tts_engine.getProperty('voices')
         self.tts_engine.setProperty('voice', 'english+f3')  # Use
         self.is_speaking = False
+
 
 
 
