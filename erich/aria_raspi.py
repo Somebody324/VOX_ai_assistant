@@ -267,7 +267,7 @@ class HomeScreen(tk.Frame):
         def load(name, filename, size):
             try:
                 path = os.path.join(base, filename)
-                img = Image.open(path).resize(size, Image.Resampling.NEAREST)
+                img = Image.open(path).resize(size, Image.Resampling.LANCZOS)
                 self.icons[name] = ImageTk.PhotoImage(img)
             except Exception as e:
                 print(f"Error loading image {filename}: {e}")
@@ -337,7 +337,7 @@ class HomeScreen(tk.Frame):
             # Fetch icon from URL and show
             with urllib.request.urlopen(icon_url) as u:
                 raw_data = u.read()
-            image = Image.open(io.BytesIO(raw_data)).resize((32, 32), Image.Resampling.NEAREST)
+            image = Image.open(io.BytesIO(raw_data)).resize((32, 32), Image.Resampling.LANCZOS)
             self.weather_icon = ImageTk.PhotoImage(image)
             self.icon_label.config(image=self.weather_icon)
         except Exception as e:
@@ -372,7 +372,7 @@ class HeartRateScreen(tk.Frame):
 
         # Load and store original image for resizing
         self.heart_img_orig = Image.open(os.path.join(base, 'heart_rate_loading.png'))
-        self.heart_img_resized = self.heart_img_orig.resize((self.beat_size, self.beat_size), Image.Resampling.NEAREST)
+        self.heart_img_resized = self.heart_img_orig.resize((self.beat_size, self.beat_size), Image.Resampling.LANCZOS)
         self.icon = ImageTk.PhotoImage(self.heart_img_resized)
         self.image_label = tk.Label(self, image=self.icon, bg=t['bg'])
         self.image_label.place(x=(WIDTH - self.beat_size) // 2, y=70)
@@ -398,7 +398,7 @@ class HeartRateScreen(tk.Frame):
             # Setup sensor
             # i2c = busio.I2C(board.SCL, board.SDA)  # Defaults to GPIO3 (SCL) and GPIO2 (SDA)
             # i2c = busio.I2C(scl=digitalio.DigitalInOut(board.D3), sda=digitalio.DigitalInOut(board.D2))
-            
+
             i2c = busio.I2C(board.SCL, board.SDA)
             ads = ADS.ADS1115(i2c)
             chan = AnalogIn(ads, ADS.P0)
@@ -440,7 +440,7 @@ class HeartRateScreen(tk.Frame):
                 self.beat_up = True
 
         # Resize and update image
-        resized = self.heart_img_orig.resize((self.beat_size, self.beat_size), Image.Resampling.NEAREST)
+        resized = self.heart_img_orig.resize((self.beat_size, self.beat_size), Image.Resampling.LANCZOS)
         self.icon = ImageTk.PhotoImage(resized)
         self.image_label.config(image=self.icon)
         self.image_label.image = self.icon  # prevent garbage collection
@@ -477,7 +477,7 @@ class HeartRateResultScreen(tk.Frame):
         t = self.theme
         fg_val = t['fg'] if t['mode'] == "dark" else "#0C151C"
         img_path = os.path.join(base,"heart_rate_result_white.png") if t['mode'] == 'light' else os.path.join(base,"heart_rate_result.png")
-        img = Image.open(img_path).resize((200, 200), Image.Resampling.NEAREST)
+        img = Image.open(img_path).resize((200, 200), Image.Resampling.LANCZOS)
         self.icon = ImageTk.PhotoImage(img)
         tk.Label(self, image=self.icon, bg=t['bg']).place(x=30, y=20)
 
