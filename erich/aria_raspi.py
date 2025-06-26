@@ -95,62 +95,62 @@ def voltage_to_percent(v):
 
 
 
-class WifiSettingsScreen(tk.Frame):
-    def __init__(self, parent, home_cb, connect_cb, theme):
-        super().__init__(parent, width=480, height=360, bg=theme['bg'])
-        self.theme = theme
-        self.home_cb = home_cb
-        self.connect_cb = connect_cb
-        self.build()
+# class WifiSettingsScreen(tk.Frame):
+#     def __init__(self, parent, home_cb, connect_cb, theme):
+#         super().__init__(parent, width=480, height=360, bg=theme['bg'])
+#         self.theme = theme
+#         self.home_cb = home_cb
+#         self.connect_cb = connect_cb
+#         self.build()
 
-    def build(self):
-        tk.Label(self, text="Select Wi‑Fi Network", fg=self.theme['fg'], bg=self.theme['bg'], font=("Roboto", 18)).pack(pady=10)
-        self.ssids_frame = tk.Frame(self, bg=self.theme['bg'])
-        self.ssids_frame.pack(fill="both", expand=True)
-        self.scan_ssids()
-        self.create_button("Back", 20, 300, self.home_cb)
+#     def build(self):
+#         tk.Label(self, text="Select Wi‑Fi Network", fg=self.theme['fg'], bg=self.theme['bg'], font=("Roboto", 18)).pack(pady=10)
+#         self.ssids_frame = tk.Frame(self, bg=self.theme['bg'])
+#         self.ssids_frame.pack(fill="both", expand=True)
+#         self.scan_ssids()
+#         self.create_button("Back", 20, 300, self.home_cb)
 
-    def create_button(self, text, x, y, cmd):
-        but = tk.Button(self, text=text, command=cmd, width=10)
-        but.place(x=x, y=y)
+#     def create_button(self, text, x, y, cmd):
+#         but = tk.Button(self, text=text, command=cmd, width=10)
+#         but.place(x=x, y=y)
 
-    def scan_ssids(self):
-        for widget in self.ssids_frame.winfo_children():
-            widget.destroy()
-        try:
-            output = subprocess.check_output(['nmcli', '-t', '-f', 'SSID,SECURITY', 'device', 'wifi'], text=True)
-            lines = [l for l in output.splitlines() if l and not l.startswith('--')]
-            for idx, line in enumerate(lines):
-                ssid = line.split(':')[0] or "<Hidden>"
-                btn = tk.Button(self.ssids_frame, text=ssid, width=40,
-                                command=lambda s=ssid: self.connect_cb(s))
-                btn.pack(pady=2)
-        except Exception as e:
-            tk.Label(self.ssids_frame, text="Error scanning Wi‑Fi", fg=self.theme['warn'], bg=self.theme['bg']).pack()
+#     def scan_ssids(self):
+#         for widget in self.ssids_frame.winfo_children():
+#             widget.destroy()
+#         try:
+#             output = subprocess.check_output(['nmcli', '-t', '-f', 'SSID,SECURITY', 'device', 'wifi'], text=True)
+#             lines = [l for l in output.splitlines() if l and not l.startswith('--')]
+#             for idx, line in enumerate(lines):
+#                 ssid = line.split(':')[0] or "<Hidden>"
+#                 btn = tk.Button(self.ssids_frame, text=ssid, width=40,
+#                                 command=lambda s=ssid: self.connect_cb(s))
+#                 btn.pack(pady=2)
+#         except Exception as e:
+#             tk.Label(self.ssids_frame, text="Error scanning Wi‑Fi", fg=self.theme['warn'], bg=self.theme['bg']).pack()
 
-class WifiConnectScreen(tk.Frame):
-    def __init__(self, parent, ssid, home_cb, theme):
-        super().__init__(parent, width=480, height=360, bg=theme['bg'])
-        self.ssid = ssid
-        self.home_cb = home_cb
-        self.theme = theme
-        self.build()
+# class WifiConnectScreen(tk.Frame):
+#     def __init__(self, parent, ssid, home_cb, theme):
+#         super().__init__(parent, width=480, height=360, bg=theme['bg'])
+#         self.ssid = ssid
+#         self.home_cb = home_cb
+#         self.theme = theme
+#         self.build()
 
-    def build(self):
-        tk.Label(self, text=f"Connect to {self.ssid}", fg=self.theme['fg'], bg=self.theme['bg'], font=("Roboto", 18)).pack(pady=10)
-        self.pwd_entry = tk.Entry(self, show="*")
-        self.pwd_entry.pack(pady=5)
-        self.create_button("Connect", 310, 280, self.attempt_connect)
-        self.create_button("Cancel", 20, 280, self.home_cb)
+#     def build(self):
+#         tk.Label(self, text=f"Connect to {self.ssid}", fg=self.theme['fg'], bg=self.theme['bg'], font=("Roboto", 18)).pack(pady=10)
+#         self.pwd_entry = tk.Entry(self, show="*")
+#         self.pwd_entry.pack(pady=5)
+#         self.create_button("Connect", 310, 280, self.attempt_connect)
+#         self.create_button("Cancel", 20, 280, self.home_cb)
 
-    def create_button(self, text, x, y, cmd):
-        but = tk.Button(self, text=text, command=cmd, width=10)
-        but.place(x=x, y=y)
+#     def create_button(self, text, x, y, cmd):
+#         but = tk.Button(self, text=text, command=cmd, width=10)
+#         but.place(x=x, y=y)
 
-    def attempt_connect(self):
-        pwd = self.pwd_entry.get()
-        subprocess.run(['nmcli', 'device', 'wifi', 'connect', self.ssid, 'password', pwd])
-        self.home_cb()
+#     def attempt_connect(self):
+#         pwd = self.pwd_entry.get()
+#         subprocess.run(['nmcli', 'device', 'wifi', 'connect', self.ssid, 'password', pwd])
+#         self.home_cb()
 # erich
 class HeartRateReviewScreen(tk.Frame):
     def __init__(self, parent, home_callback, bpm_history, theme):
@@ -266,7 +266,7 @@ class HomeScreen(tk.Frame):
         def load(name, filename, size):
             try:
                 path = os.path.join(base, filename)
-                img = Image.open(path).resize(size, Image.Resampling.LANCZOS)
+                img = Image.open(path).resize(size, Image.Resampling.NEAREST)
                 self.icons[name] = ImageTk.PhotoImage(img)
             except Exception as e:
                 print(f"Error loading image {filename}: {e}")
@@ -336,7 +336,7 @@ class HomeScreen(tk.Frame):
             # Fetch icon from URL and show
             with urllib.request.urlopen(icon_url) as u:
                 raw_data = u.read()
-            image = Image.open(io.BytesIO(raw_data)).resize((32, 32), Image.Resampling.LANCZOS)
+            image = Image.open(io.BytesIO(raw_data)).resize((32, 32), Image.Resampling.NEAREST)
             self.weather_icon = ImageTk.PhotoImage(image)
             self.icon_label.config(image=self.weather_icon)
         except Exception as e:
@@ -370,7 +370,7 @@ class HeartRateScreen(tk.Frame):
 
         # Load and store original image for resizing
         self.heart_img_orig = Image.open(os.path.join(base, 'heart_rate_loading.png'))
-        self.heart_img_resized = self.heart_img_orig.resize((self.beat_size, self.beat_size), Image.Resampling.LANCZOS)
+        self.heart_img_resized = self.heart_img_orig.resize((self.beat_size, self.beat_size), Image.Resampling.NEAREST)
         self.icon = ImageTk.PhotoImage(self.heart_img_resized)
         self.image_label = tk.Label(self, image=self.icon, bg=t['bg'])
         self.image_label.place(x=(WIDTH - self.beat_size) // 2, y=70)
@@ -409,7 +409,7 @@ class HeartRateScreen(tk.Frame):
                 self.beat_up = True
 
         # Resize and update image
-        resized = self.heart_img_orig.resize((self.beat_size, self.beat_size), Image.Resampling.LANCZOS)
+        resized = self.heart_img_orig.resize((self.beat_size, self.beat_size), Image.Resampling.NEAREST)
         self.icon = ImageTk.PhotoImage(resized)
         self.image_label.config(image=self.icon)
         self.image_label.image = self.icon  # prevent garbage collection
@@ -418,7 +418,7 @@ class HeartRateScreen(tk.Frame):
         self.image_label.place(x=(480 - self.beat_size) // 2, y=70)
 
         # Repeat animation
-        self.after(100, self.beat_heart)
+        self.after(200, self.beat_heart)
 
     def complete_measurement(self):
         self.stop_animation()
@@ -446,7 +446,7 @@ class HeartRateResultScreen(tk.Frame):
         t = self.theme
         fg_val = t['fg'] if t['mode'] == "dark" else "#0C151C"
         img_path = os.path.join(base,"heart_rate_result_white.png") if t['mode'] == 'light' else os.path.join(base,"heart_rate_result.png")
-        img = Image.open(img_path).resize((200, 200), Image.Resampling.LANCZOS)
+        img = Image.open(img_path).resize((200, 200), Image.Resampling.NEAREST)
         self.icon = ImageTk.PhotoImage(img)
         tk.Label(self, image=self.icon, bg=t['bg']).place(x=30, y=20)
 
@@ -618,7 +618,6 @@ class MicRecordingScreen(tk.Frame):
         self.is_recording = False
         self.recording_thread = None
 
-        print(sd.query_devices())
 
     def build_ui(self):
         t = self.theme
@@ -751,8 +750,7 @@ class MainApplication(tk.Tk):
         self.voices = self.tts_engine.getProperty('voices')
         self.tts_engine.setProperty('voice', 'english+f3')  # Use
         self.is_speaking = False
-
-
+        print(sd.query_devices())
 
 
         # load model once
@@ -789,8 +787,8 @@ class MainApplication(tk.Tk):
             ("Heart",   HeartRateScreen,        (self.container,             self.show_result_screen, theme)),
             ("Result",  HeartRateResultScreen,  (self.container, self.show_home, self.show_review, self.bpm_history, theme)),
             ("Review",  HeartRateReviewScreen,  (self.container, self.show_home, self.bpm_history, theme)),
-            ("WifiList", WifiSettingsScreen,    (self.container, self.show_home, self.goto_connect, theme)),
-            ("WifiConnect", WifiConnectScreen,  (self.container, "", self.show_home, theme)),
+            # ("WifiList", WifiSettingsScreen,    (self.container, self.show_home, self.goto_connect, theme)),
+            # ("WifiConnect", WifiConnectScreen,  (self.container, "", self.show_home, theme)),
             ("Mic", MicRecordingScreen, (self.container, self.show_home, self.vosk_model, theme)),
             ("AriaResponse", AriaResponseScreen, (self.container, "", self.show_home, self.show_mic, self.tts_engine, theme))
         ]:
