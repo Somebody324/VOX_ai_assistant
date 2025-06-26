@@ -389,30 +389,30 @@ class HeartRateScreen(tk.Frame):
     #         self.after(5000, self.complete_measurement)
 
     def start_measurement(self):
-            if not self.is_animating:
-                self.is_animating = True
-                self.dot = 0
-                self.voltage_values = []
+        if not self.is_animating:
+            self.is_animating = True
+            self.dot = 0
+            self.voltage_values = []
 
-                # Setup sensor
-                i2c = busio.I2C(board.GP20, board.GP21)
-                ads = ADS.ADS1115(i2c)
-                chan = AnalogIn(ads, ADS.P0)
+            # Setup sensor
+            i2c = busio.I2C(board.SCL, board.SDA)  # Defaults to GPIO3 (SCL) and GPIO2 (SDA)
+            ads = ADS.ADS1115(i2c)
+            chan = AnalogIn(ads, ADS.P0)
 
-                # Start animation and sensor reading
-                self.animate()
-                self.beat_heart()
+            # Start animation and sensor reading
+            self.animate()
+            self.beat_heart()
 
-                def read_sensor():
-                    start_time = time.time()
-                    while time.time() - start_time < 5:
-                        voltage = chan.voltage
-                        self.voltage_values.append(voltage)
-                        time.sleep(0.05)
-                    self.complete_measurement()
+            def read_sensor():
+                start_time = time.time()
+                while time.time() - start_time < 5:
+                    voltage = chan.voltage
+                    self.voltage_values.append(voltage)
+                    time.sleep(0.05)
+                self.complete_measurement()
 
-                threading.Thread(target=read_sensor, daemon=True).start()            
-                
+            threading.Thread(target=read_sensor, daemon=True).start()            
+            
 
     def animate(self):
         dots = ["", ".", "..", "..."]
