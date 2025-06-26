@@ -19,6 +19,7 @@ import io
 import time
 
 import board
+import digitalio
 import busio
 import adafruit_ads1x15.ads1115 as ADS
 from adafruit_ads1x15.analog_in import AnalogIn
@@ -395,7 +396,8 @@ class HeartRateScreen(tk.Frame):
             self.voltage_values = []
 
             # Setup sensor
-            i2c = busio.I2C(board.SCL, board.SDA)  # Defaults to GPIO3 (SCL) and GPIO2 (SDA)
+            # i2c = busio.I2C(board.SCL, board.SDA)  # Defaults to GPIO3 (SCL) and GPIO2 (SDA)
+            i2c = busio.I2C(scl=digitalio.DigitalInOut(board.D3), sda=digitalio.DigitalInOut(board.D2))
             ads = ADS.ADS1115(i2c)
             chan = AnalogIn(ads, ADS.P0)
 
