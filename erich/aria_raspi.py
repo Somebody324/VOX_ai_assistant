@@ -16,7 +16,12 @@ import pyttsx3
 from vosk import Model, KaldiRecognizer
 import urllib.request
 import io
+import time
 
+import board
+import busio
+import adafruit_ads1x15.ads1115 as ADS
+from adafruit_ads1x15.analog_in import AnalogIn
 
 
 WIDTH = 480
@@ -254,9 +259,6 @@ class HomeScreen(tk.Frame):
 
 
     def build_ui(self):
-        import os
-        from PIL import Image, ImageTk
-        from datetime import datetime  # Make sure this is imported
 
         t = self.theme
         base = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'assets'))
@@ -355,6 +357,7 @@ class HeartRateScreen(tk.Frame):
         self.animation_id = None   
         self.beat_up = True  # Track beat direction
         self.beat_size = 180  # Initial size
+        self.voltage_values = []
         self.build_ui()
     
     def build_ui(self):
@@ -377,13 +380,39 @@ class HeartRateScreen(tk.Frame):
                             font=("Roboto", 20, "bold"), width=20, height=2)
         self.txt.place(x=(WIDTH - 350) // 2, y=280)
 
+    # def start_measurement(self):
+    #     if not self.is_animating:  
+    #         self.is_animating = True
+    #         self.dot = 0
+    #         self.animate()
+    #         self.beat_heart()  # Start heart animation
+    #         self.after(5000, self.complete_measurement)
+
     def start_measurement(self):
-        if not self.is_animating:  
-            self.is_animating = True
-            self.dot = 0
-            self.animate()
-            self.beat_heart()  # Start heart animation
-            self.after(5000, self.complete_measurement)
+            if not self.is_animating:
+                self.is_animating = True
+                self.dot = 0
+                self.voltage_values = []
+
+                # Setup sensor
+                i2c = busio.I2C(board.GP20, board.GP21)
+                ads = ADS.ADS1115(i2c)
+                chan = AnalogIn(ads, ADS.P0)
+
+                # Start animation and sensor reading
+                self.animate()
+                self.beat_heart()
+
+                def read_sensor():
+                    start_time = time.time()
+                    while time.time() - start_time < 5:
+                        voltage = chan.voltage
+                        self.voltage_values.append(voltage)
+                        time.sleep(0.05)
+                    self.complete_measurement()
+
+                threading.Thread(target=read_sensor, daemon=True).start()            
+                
 
     def animate(self):
         dots = ["", ".", "..", "..."]
