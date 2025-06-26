@@ -95,62 +95,6 @@ def voltage_to_percent(v):
 
 
 
-# class WifiSettingsScreen(tk.Frame):
-#     def __init__(self, parent, home_cb, connect_cb, theme):
-#         super().__init__(parent, width=480, height=360, bg=theme['bg'])
-#         self.theme = theme
-#         self.home_cb = home_cb
-#         self.connect_cb = connect_cb
-#         self.build()
-
-#     def build(self):
-#         tk.Label(self, text="Select Wi‑Fi Network", fg=self.theme['fg'], bg=self.theme['bg'], font=("Roboto", 18)).pack(pady=10)
-#         self.ssids_frame = tk.Frame(self, bg=self.theme['bg'])
-#         self.ssids_frame.pack(fill="both", expand=True)
-#         self.scan_ssids()
-#         self.create_button("Back", 20, 300, self.home_cb)
-
-#     def create_button(self, text, x, y, cmd):
-#         but = tk.Button(self, text=text, command=cmd, width=10)
-#         but.place(x=x, y=y)
-
-#     def scan_ssids(self):
-#         for widget in self.ssids_frame.winfo_children():
-#             widget.destroy()
-#         try:
-#             output = subprocess.check_output(['nmcli', '-t', '-f', 'SSID,SECURITY', 'device', 'wifi'], text=True)
-#             lines = [l for l in output.splitlines() if l and not l.startswith('--')]
-#             for idx, line in enumerate(lines):
-#                 ssid = line.split(':')[0] or "<Hidden>"
-#                 btn = tk.Button(self.ssids_frame, text=ssid, width=40,
-#                                 command=lambda s=ssid: self.connect_cb(s))
-#                 btn.pack(pady=2)
-#         except Exception as e:
-#             tk.Label(self.ssids_frame, text="Error scanning Wi‑Fi", fg=self.theme['warn'], bg=self.theme['bg']).pack()
-
-# class WifiConnectScreen(tk.Frame):
-#     def __init__(self, parent, ssid, home_cb, theme):
-#         super().__init__(parent, width=480, height=360, bg=theme['bg'])
-#         self.ssid = ssid
-#         self.home_cb = home_cb
-#         self.theme = theme
-#         self.build()
-
-#     def build(self):
-#         tk.Label(self, text=f"Connect to {self.ssid}", fg=self.theme['fg'], bg=self.theme['bg'], font=("Roboto", 18)).pack(pady=10)
-#         self.pwd_entry = tk.Entry(self, show="*")
-#         self.pwd_entry.pack(pady=5)
-#         self.create_button("Connect", 310, 280, self.attempt_connect)
-#         self.create_button("Cancel", 20, 280, self.home_cb)
-
-#     def create_button(self, text, x, y, cmd):
-#         but = tk.Button(self, text=text, command=cmd, width=10)
-#         but.place(x=x, y=y)
-
-#     def attempt_connect(self):
-#         pwd = self.pwd_entry.get()
-#         subprocess.run(['nmcli', 'device', 'wifi', 'connect', self.ssid, 'password', pwd])
-#         self.home_cb()
 # erich
 class HeartRateReviewScreen(tk.Frame):
     def __init__(self, parent, home_callback, bpm_history, theme):
@@ -158,35 +102,23 @@ class HeartRateReviewScreen(tk.Frame):
         self.theme = theme
         self.home_callback = home_callback
         self.bpm_history = bpm_history
-        self.scroll_start_y = 0
         self.build()
 
     def build(self):
         t = self.theme
-
-        # Canvas and Scrollable Frame
         self.canvas = tk.Canvas(self, bg=t['bg'], highlightthickness=0)
         self.scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
-
         self.scrollable = tk.Frame(self.canvas, bg=t['bg'])
         self.scrollable.bind("<Configure>", lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all")))
-
-        self.canvas_window = self.canvas.create_window((0, 0), window=self.scrollable, anchor="nw")
+        self.canvas.create_window((0, 0), window=self.scrollable, anchor="nw")
         self.canvas.configure(yscrollcommand=self.scrollbar.set)
-
         self.canvas.place(x=0, y=30, width=470, height=250)
         self.scrollbar.place(x=470, y=30, height=250)
+        self.canvas.bind_all("<MouseWheel>", lambda e: self.canvas.yview_scroll(int(-1*(e.delta/120)), "units"))
 
-        # Bind scrolling (mouse + drag)
-        self.canvas.bind_all("<MouseWheel>", lambda e: self.canvas.yview_scroll(int(-1 * (e.delta / 120)), "units"))
-        self.canvas.bind("<ButtonPress-1>", self.start_scroll)
-        self.canvas.bind("<B1-Motion>", self.drag_scroll)
-
-        # Add history entries
         for entry in reversed(self.bpm_history):
             self._add_entry(entry)
 
-        # Statistics
         if self.bpm_history:
             vals = [e['bpm'] for e in self.bpm_history]
             avg, mn, mx = sum(vals) // len(vals), min(vals), max(vals)
@@ -195,26 +127,17 @@ class HeartRateReviewScreen(tk.Frame):
             tk.Label(self, text=f"Min: {mn}", fg=t['fg'], bg=t['bg'], font=("Roboto", 14)).place(x=120, y=5)
             tk.Label(self, text=f"Max: {mx}", fg=t['fg'], bg=t['bg'], font=("Roboto", 14)).place(x=220, y=5)
 
-        # Buttons
-        self.create_rounded_button("Export", 25, 300, self.export_bpm_history)
         self.create_rounded_button("Home", 295, 300, self.home_callback)
-
-    def start_scroll(self, event):
-        self.scroll_start_y = event.y
-
-    def drag_scroll(self, event):
-        delta = self.scroll_start_y - event.y
-        self.canvas.yview_scroll(int(delta / 2), "units")
-        self.scroll_start_y = event.y
+        self.create_rounded_button("Export", 25, 300, self.export_bpm_history)
 
     def create_rounded_button(self, text, x, y, command):
         button_bg = "#2A5062"
         radius = 10
         button = tk.Canvas(self, width=100, height=30, bg=button_bg, highlightthickness=0)
         button.place(x=x, y=y)
-        button.create_oval(0, 0, radius * 2, radius * 2, fill=button_bg, outline=button_bg)
-        button.create_oval(100 - radius * 2, 0, 100, radius * 2, fill=button_bg, outline=button_bg)
-        button.create_rectangle(radius, 0, 100 - radius, 30, fill=button_bg, outline=button_bg)
+        button.create_oval(0, 0, radius*2, radius*2, fill=button_bg, outline=button_bg)
+        button.create_oval(100-radius*2, 0, 100, radius*2, fill=button_bg, outline=button_bg)
+        button.create_rectangle(radius, 0, 100-radius, 30, fill=button_bg, outline=button_bg)
         button.create_text(50, 15, text=text, fill="white", font=("Roboto", 12))
         button.bind("<Button-1>", lambda e: command())
 
@@ -266,7 +189,7 @@ class HomeScreen(tk.Frame):
         def load(name, filename, size):
             try:
                 path = os.path.join(base, filename)
-                img = Image.open(path).resize(size, Image.Resampling.NEAREST)
+                img = Image.open(path).resize(size, Image.Resampling.LANCZOS)
                 self.icons[name] = ImageTk.PhotoImage(img)
             except Exception as e:
                 print(f"Error loading image {filename}: {e}")
@@ -336,7 +259,7 @@ class HomeScreen(tk.Frame):
             # Fetch icon from URL and show
             with urllib.request.urlopen(icon_url) as u:
                 raw_data = u.read()
-            image = Image.open(io.BytesIO(raw_data)).resize((32, 32), Image.Resampling.NEAREST)
+            image = Image.open(io.BytesIO(raw_data)).resize((32, 32), Image.Resampling.LANCZOS)
             self.weather_icon = ImageTk.PhotoImage(image)
             self.icon_label.config(image=self.weather_icon)
         except Exception as e:
@@ -347,91 +270,63 @@ class HomeScreen(tk.Frame):
         self.after(900000, self.update_weather)  # update every 15 minutes
  
             
-# erich - done
+        
+        
 class HeartRateScreen(tk.Frame):
     def __init__(self, parent, result_cb, theme):
         super().__init__(parent, width=480, height=360, bg=theme['bg'])
         self.theme = theme
         self.result_cb = result_cb
+        self.build_ui()
         self.is_animating = False  
         self.animation_id = None   
-        self.beat_up = True  # Track beat direction
-        self.beat_size = 180  # Initial size
-        self.build_ui()
     
     def build_ui(self):
+
         base = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'assets'))
         t = self.theme
         fg_label = "white" if t['mode'] == "dark" else "#0C151C"
         box_bg = "#2A4A62"
 
+        # Title
         tk.Label(self, text="Heart Rate", fg=fg_label, bg=t['bg'],
-                font=("Roboto", 36, "bold")).place(x=(WIDTH - 250) // 2, y=10)
+                font=("Roboto", 36, "bold")).place(x=(WIDTH - 250) // 2, y=10)  # ~250px text width
 
-        # Load and store original image for resizing
-        self.heart_img_orig = Image.open(os.path.join(base, 'heart_rate_loading.png'))
-        self.heart_img_resized = self.heart_img_orig.resize((self.beat_size, self.beat_size), Image.Resampling.NEAREST)
-        self.icon = ImageTk.PhotoImage(self.heart_img_resized)
-        self.image_label = tk.Label(self, image=self.icon, bg=t['bg'])
-        self.image_label.place(x=(WIDTH - self.beat_size) // 2, y=70)
+        # Image
+        img = Image.open(os.path.join(base, 'heart_rate_loading.png'))\
+                .resize((180, 180), Image.Resampling.LANCZOS)
+        self.icon = ImageTk.PhotoImage(img)
+        tk.Label(self, image=self.icon, bg=t['bg']).place(x=(WIDTH - 180) // 2, y=70)
 
+        # Text label
         self.txt = tk.Label(self, text="Measuring...", fg="white", bg=box_bg,
-                            font=("Roboto", 20, "bold"), width=20, height=2)
-        self.txt.place(x=(WIDTH - 350) // 2, y=280)
+                            font=("Roboto", 14, "bold"), width=20, height=2)
+        self.txt.place(x=(WIDTH - 220) // 2, y=280)
 
     def start_measurement(self):
         if not self.is_animating:  
             self.is_animating = True
             self.dot = 0
             self.animate()
-            self.beat_heart()  # Start heart animation
-            self.after(5000, self.complete_measurement)
+            self.after(5000, self.complete_measurement)  
 
     def animate(self):
         dots = ["", ".", "..", "..."]
         self.txt.config(text=f"Measuring{dots[self.dot]}")
         self.dot = (self.dot + 1) % 4
-        if self.is_animating:
+        if self.is_animating:  
             self.animation_id = self.after(500, self.animate)
 
-    def beat_heart(self):
-        if not self.is_animating:
-            return
-
-        # Adjust size (scale between 180 and 200 px)
-        if self.beat_up:
-            self.beat_size += 4
-            if self.beat_size >= 200:
-                self.beat_up = False
-        else:
-            self.beat_size -= 4
-            if self.beat_size <= 180:
-                self.beat_up = True
-
-        # Resize and update image
-        resized = self.heart_img_orig.resize((self.beat_size, self.beat_size), Image.Resampling.NEAREST)
-        self.icon = ImageTk.PhotoImage(resized)
-        self.image_label.config(image=self.icon)
-        self.image_label.image = self.icon  # prevent garbage collection
-
-        # Reposition to stay centered
-        self.image_label.place(x=(480 - self.beat_size) // 2, y=70)
-
-        # Repeat animation
-        self.after(200, self.beat_heart)
-
     def complete_measurement(self):
-        self.stop_animation()
-        self.result_cb()
+        self.stop_animation()  
+        self.result_cb()      
 
     def stop_animation(self):
-        self.is_animating = False
-        if self.animation_id:
+        self.is_animating = False   
+        if self.animation_id: 
             self.after_cancel(self.animation_id)
             self.animation_id = None
-            
-            
-# erich - done
+# erich
 class HeartRateResultScreen(tk.Frame):
     def __init__(self, parent, home_cb, hist_cb, bpm_history, theme):
         super().__init__(parent, width=480, height=360, bg=theme['bg'])
@@ -446,7 +341,7 @@ class HeartRateResultScreen(tk.Frame):
         t = self.theme
         fg_val = t['fg'] if t['mode'] == "dark" else "#0C151C"
         img_path = os.path.join(base,"heart_rate_result_white.png") if t['mode'] == 'light' else os.path.join(base,"heart_rate_result.png")
-        img = Image.open(img_path).resize((200, 200), Image.Resampling.NEAREST)
+        img = Image.open(img_path).resize((200, 200), Image.Resampling.LANCZOS)
         self.icon = ImageTk.PhotoImage(img)
         tk.Label(self, image=self.icon, bg=t['bg']).place(x=30, y=20)
 
@@ -476,11 +371,9 @@ class HeartRateResultScreen(tk.Frame):
         self.rate.config(text=str(h))
         self.bpm_history.insert(0, {'dt': datetime.now(), 'bpm': h})
         status, color, x = ("Normal", "#67DE8B", 334) if h <= 99 else ("Elevated", "#E62B2B", 360)
-        self.status.place(x=251, y=155)
-        self.bpm.place(x=251, y=125); self.status.config(text=status, fg=color)
+        self.bpm.place(x=x, y=80); self.status.config(text=status, fg=color)
 
-# erich - done
-
+# erich
 class AriaResponseScreen(tk.Frame): 
     def __init__(self, parent, response_text, back_callback, mic_callback, tts_engine, theme):
         super().__init__(parent, width=480, height=360, bg=theme['bg'])
@@ -515,20 +408,13 @@ class AriaResponseScreen(tk.Frame):
         t = self.theme
         fg = "white" if t["mode"] == "dark" else "black"
 
-        box_width = 460
+        box_width = 400
         box_height = 220
 
-        # Frame to contain text and scrollbar
-        text_frame = tk.Frame(self, bg=t['bg'])
-        text_frame.place(x=(480 - box_width) // 2, y=40, width=box_width, height=box_height)
-
-        # Scrollbar
-        scrollbar = tk.Scrollbar(text_frame)
-        scrollbar.pack(side="right", fill="y")
-
-        # Text widget
         self.text_box = tk.Text(
-            text_frame,
+            self,
+            height=10,
+            width=50,
             font=("Roboto", 18, "bold"),
             bg="#2A5062",
             fg="white",
@@ -536,24 +422,10 @@ class AriaResponseScreen(tk.Frame):
             borderwidth=0,
             wrap="word",
             padx=10,
-            pady=10,
-            yscrollcommand=scrollbar.set
+            pady=10
         )
-        self.text_box.pack(side="left", fill="both", expand=True)
-        scrollbar.config(command=self.text_box.yview)
+        self.text_box.place(x=(480 - box_width) // 2, y=40, width=box_width, height=box_height)
         self.text_box.config(state="normal")
-
-        # Bind mouse wheel (Windows, Mac, Linux)
-        self.text_box.bind("<Enter>", lambda e: self.text_box.focus_set())
-        self.text_box.bind("<MouseWheel>", lambda e: self.text_box.yview_scroll(-1 * (e.delta // 120), "units"))  # Windows/Mac
-        self.text_box.bind("<Button-4>", lambda e: self.text_box.yview_scroll(-1, "units"))  # Linux scroll up
-        self.text_box.bind("<Button-5>", lambda e: self.text_box.yview_scroll(1, "units"))   # Linux scroll down
-
-        # Enable click-drag scrolling (touchpad/touchscreen style)
-        self.text_box.bind("<ButtonPress-1>", self.start_scroll)
-        self.text_box.bind("<B1-Motion>", self.scroll_drag)
-
-        self.scroll_start_y = 0  # internal state for drag scroll
 
         button_width = 220
         spacing = 20
@@ -563,14 +435,6 @@ class AriaResponseScreen(tk.Frame):
 
         self.create_rounded_button("Try Again", x_start, y_pos, self.mic_callback)
         self.create_rounded_button("Home", x_start + button_width + spacing, y_pos, self.back_callback)
-
-    def start_scroll(self, event):
-        self.scroll_start_y = event.y
-
-    def scroll_drag(self, event):
-        delta = self.scroll_start_y - event.y
-        self.text_box.yview_scroll(int(delta / 2), "units")
-        self.scroll_start_y = event.y
 
     def create_rounded_button(self, text, x, y, command):
         button_bg = "#2A5062"
@@ -618,6 +482,7 @@ class MicRecordingScreen(tk.Frame):
         self.is_recording = False
         self.recording_thread = None
 
+        print(sd.query_devices())
 
     def build_ui(self):
         t = self.theme
@@ -750,7 +615,8 @@ class MainApplication(tk.Tk):
         self.voices = self.tts_engine.getProperty('voices')
         self.tts_engine.setProperty('voice', 'english+f3')  # Use
         self.is_speaking = False
-        print(sd.query_devices())
+
+
 
 
         # load model once
@@ -787,8 +653,6 @@ class MainApplication(tk.Tk):
             ("Heart",   HeartRateScreen,        (self.container,             self.show_result_screen, theme)),
             ("Result",  HeartRateResultScreen,  (self.container, self.show_home, self.show_review, self.bpm_history, theme)),
             ("Review",  HeartRateReviewScreen,  (self.container, self.show_home, self.bpm_history, theme)),
-            # ("WifiList", WifiSettingsScreen,    (self.container, self.show_home, self.goto_connect, theme)),
-            # ("WifiConnect", WifiConnectScreen,  (self.container, "", self.show_home, theme)),
             ("Mic", MicRecordingScreen, (self.container, self.show_home, self.vosk_model, theme)),
             ("AriaResponse", AriaResponseScreen, (self.container, "", self.show_home, self.show_mic, self.tts_engine, theme))
         ]:
