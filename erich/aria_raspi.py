@@ -739,8 +739,8 @@ class MainApplication(tk.Tk):
         super().__init__()
         self.title("Heart Monitor")
         self.geometry("480x360")
-        # self.attributes("-fullscreen", True)
-        # self.config(cursor="none")
+        self.attributes("-fullscreen", True)
+        self.config(cursor="none")
         self.resizable(False, False)
         self.bpm_history = []
         self.is_dark = True
