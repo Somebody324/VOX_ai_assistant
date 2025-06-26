@@ -22,7 +22,7 @@ import io
 WIDTH = 480
 HEIGHT = 360
 
-GEMINI_API_KEY = "AIzaSyA1hka36sualOU7MPnwC4M5gAJgeuE19DM"  
+GEMINI_API_KEY = "AIzaSyCwqVfnzllSZQZnPPOoZ3IfrPN0t8h6YNI"  
 WEATHER_API_KEY = "9662b07f6e614151874170320252606"
 GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
 
