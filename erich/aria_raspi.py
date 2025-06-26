@@ -19,7 +19,7 @@ from vosk import Model, KaldiRecognizer
 WIDTH = 480
 HEIGHT = 360
 
-GEMINI_API_KEY = "AIzaSyBXMqCFlBgnm9cFwlWLXTNVC-vJKKlz2MA"  
+GEMINI_API_KEY = "AIzaSyA1hka36sualOU7MPnwC4M5gAJgeuE19DM"  
 GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
 
 def send_to_gemini(user_input):
