@@ -432,9 +432,11 @@ class AriaResponseScreen(tk.Frame):
     
     def speak(self, response):
         print(f"Starting TTS .....")
+        self.master.master.is_speaking = True
         self.tts_engine.say(response)
         self.tts_engine.runAndWait()
         self.tts_engine.stop()
+        self.master.master.is_speaking = False
             
         
 class MicRecordingScreen(tk.Frame):
@@ -590,7 +592,8 @@ class MainApplication(tk.Tk):
         self.tts_engine = pyttsx3.init()
         self.tts_engine.setProperty('rate', 170)
         self.voices = self.tts_engine.getProperty('voices')
-        self.tts_engine.setProperty('voice', self.voices[1].id)
+        self.tts_engine.setProperty('voice', 'english+f3')  # Use
+        self.is_speaking = False
 
 
 
@@ -646,15 +649,17 @@ class MainApplication(tk.Tk):
         self.build_frames(self.current_theme)
     def show_mic(self):
 
+        if self.is_speaking:
+            self.tts_engine.stop()
+            self.is_speaking = False
+
         old = self.frames["Mic"]
         old.destroy()
 
-        # Recreate a fresh MicRecordingScreen
         frame = MicRecordingScreen(self.container, self.show_home, self.vosk_model, self.current_theme)
         frame.place(x=0, y=0, width=480, height=360)
-
         self.frames["Mic"] = frame
-        self.show_frame("Mic")
+        self.show_frame("Mic") 
         
     def show_aria_response(self, response_text):
         old = self.frames.get("AriaResponse")
@@ -679,6 +684,10 @@ class MainApplication(tk.Tk):
         self.show_frame("Result")
 
     def show_home(self):
+        if self.is_speaking:
+            self.tts_engine.stop()
+            self.is_speaking
+
         self.show_frame("Home")
 
     def show_review(self):
