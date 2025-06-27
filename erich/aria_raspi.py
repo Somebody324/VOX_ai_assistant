@@ -505,7 +505,7 @@ class HeartRateResultScreen(tk.Frame):
         button.bind("<Button-1>", lambda e: command())
 
     def generate_heart_rate(self):
-        h = random.randint(60, 140)
+        h = random.randint(60, 90)
         self.rate.config(text=str(h))
         self.bpm_history.insert(0, {'dt': datetime.now(), 'bpm': h})
         status, color, x = ("Normal", "#67DE8B", 334) if h <= 99 else ("Elevated", "#E62B2B", 360)
